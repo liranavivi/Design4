@@ -38,11 +38,9 @@ public class UpdateStepCommandConsumer : IConsumer<UpdateStepCommand>
             }
 
             // Update properties
-            existing.Address = context.Message.Address;
-            existing.Version = context.Message.Version;
-            existing.Name = context.Message.Name;
+            existing.EntityId = context.Message.EntityId;
+            existing.NextStepIds = context.Message.NextStepIds ?? new List<Guid>();
             existing.Description = context.Message.Description;
-            existing.Configuration = context.Message.Configuration ?? new Dictionary<string, object>();
             existing.UpdatedBy = context.Message.RequestedBy;
 
             var updated = await _repository.UpdateAsync(existing);
@@ -50,11 +48,9 @@ public class UpdateStepCommandConsumer : IConsumer<UpdateStepCommand>
             await _publishEndpoint.Publish(new StepUpdatedEvent
             {
                 Id = updated.Id,
-                Address = updated.Address,
-                Version = updated.Version,
-                Name = updated.Name,
+                EntityId = updated.EntityId,
+                NextStepIds = updated.NextStepIds,
                 Description = updated.Description,
-                Configuration = updated.Configuration,
                 UpdatedAt = updated.UpdatedAt,
                 UpdatedBy = updated.UpdatedBy
             });

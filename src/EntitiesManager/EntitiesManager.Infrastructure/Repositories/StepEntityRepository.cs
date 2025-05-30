@@ -17,50 +17,34 @@ public class StepEntityRepository : BaseRepository<StepEntity>, IStepEntityRepos
 
     protected override FilterDefinition<StepEntity> CreateCompositeKeyFilter(string compositeKey)
     {
-        var parts = compositeKey.Split('_', 2);
-        if (parts.Length != 2)
-            throw new ArgumentException("Invalid composite key format for StepEntity. Expected format: 'address_version'");
-
-        return Builders<StepEntity>.Filter.And(
-            Builders<StepEntity>.Filter.Eq(x => x.Address, parts[0]),
-            Builders<StepEntity>.Filter.Eq(x => x.Version, parts[1])
-        );
+        // StepEntity no longer uses composite keys - return empty filter
+        return Builders<StepEntity>.Filter.Empty;
     }
 
     protected override void CreateIndexes()
     {
-        // Composite key index for uniqueness
-        var compositeKeyIndex = Builders<StepEntity>.IndexKeys
-            .Ascending(x => x.Address)
-            .Ascending(x => x.Version);
+        // StepEntity no longer uses composite keys - create indexes for new properties
+        // EntityId index for workflow entity references
+        _collection.Indexes.CreateOne(new CreateIndexModel<StepEntity>(
+            Builders<StepEntity>.IndexKeys.Ascending(x => x.EntityId)));
 
-        var indexOptions = new CreateIndexOptions { Unique = true };
-        _collection.Indexes.CreateOne(new CreateIndexModel<StepEntity>(compositeKeyIndex, indexOptions));
-
-        // Additional indexes for common queries
+        // NextStepIds index for workflow navigation queries
         _collection.Indexes.CreateOne(new CreateIndexModel<StepEntity>(
-            Builders<StepEntity>.IndexKeys.Ascending(x => x.Name)));
-        _collection.Indexes.CreateOne(new CreateIndexModel<StepEntity>(
-            Builders<StepEntity>.IndexKeys.Ascending(x => x.Address)));
-        _collection.Indexes.CreateOne(new CreateIndexModel<StepEntity>(
-            Builders<StepEntity>.IndexKeys.Ascending(x => x.Version)));
+            Builders<StepEntity>.IndexKeys.Ascending(x => x.NextStepIds)));
     }
 
-    public async Task<IEnumerable<StepEntity>> GetByAddressAsync(string address)
+    // GetByAddressAsync, GetByVersionAsync, and GetByNameAsync methods removed
+    // since StepEntity no longer has these properties
+
+    public async Task<IEnumerable<StepEntity>> GetByEntityIdAsync(Guid entityId)
     {
-        var filter = Builders<StepEntity>.Filter.Eq(x => x.Address, address);
+        var filter = Builders<StepEntity>.Filter.Eq(x => x.EntityId, entityId);
         return await _collection.Find(filter).ToListAsync();
     }
 
-    public async Task<IEnumerable<StepEntity>> GetByVersionAsync(string version)
+    public async Task<IEnumerable<StepEntity>> GetByNextStepIdAsync(Guid nextStepId)
     {
-        var filter = Builders<StepEntity>.Filter.Eq(x => x.Version, version);
-        return await _collection.Find(filter).ToListAsync();
-    }
-
-    public async Task<IEnumerable<StepEntity>> GetByNameAsync(string name)
-    {
-        var filter = Builders<StepEntity>.Filter.Eq(x => x.Name, name);
+        var filter = Builders<StepEntity>.Filter.AnyEq(x => x.NextStepIds, nextStepId);
         return await _collection.Find(filter).ToListAsync();
     }
 
@@ -69,11 +53,9 @@ public class StepEntityRepository : BaseRepository<StepEntity>, IStepEntityRepos
         var createdEvent = new StepCreatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
-            Version = entity.Version,
-            Name = entity.Name,
+            EntityId = entity.EntityId,
+            NextStepIds = entity.NextStepIds,
             Description = entity.Description,
-            Configuration = entity.Configuration,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy
         };
@@ -85,11 +67,9 @@ public class StepEntityRepository : BaseRepository<StepEntity>, IStepEntityRepos
         var updatedEvent = new StepUpdatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
-            Version = entity.Version,
-            Name = entity.Name,
+            EntityId = entity.EntityId,
+            NextStepIds = entity.NextStepIds,
             Description = entity.Description,
-            Configuration = entity.Configuration,
             UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
         };

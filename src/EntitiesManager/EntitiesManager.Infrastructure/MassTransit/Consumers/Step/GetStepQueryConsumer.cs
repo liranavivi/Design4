@@ -34,20 +34,20 @@ public class GetStepQueryConsumer : IConsumer<GetStepQuery>
                 else
                     await context.RespondAsync(new { Error = "Step not found", Type = "NotFound" });
             }
-            else if (!string.IsNullOrEmpty(context.Message.CompositeKey))
+            else if (context.Message.EntityId.HasValue && context.Message.EntityId != Guid.Empty)
             {
-                activity?.SetTag("query.type", "ByCompositeKey");
-                activity?.SetTag("query.compositeKey", context.Message.CompositeKey);
+                activity?.SetTag("query.type", "ByEntityId");
+                activity?.SetTag("query.entityId", context.Message.EntityId.ToString());
 
-                var entity = await _repository.GetByCompositeKeyAsync(context.Message.CompositeKey);
-                if (entity != null)
-                    await context.RespondAsync(entity);
+                var entities = await _repository.GetByEntityIdAsync(context.Message.EntityId.Value);
+                if (entities.Any())
+                    await context.RespondAsync(entities);
                 else
-                    await context.RespondAsync(new { Error = "Step not found", Type = "NotFound" });
+                    await context.RespondAsync(new { Error = "Steps not found", Type = "NotFound" });
             }
             else
             {
-                await context.RespondAsync(new { Error = "Either Id or CompositeKey must be provided", Type = "BadRequest" });
+                await context.RespondAsync(new { Error = "Either Id or EntityId must be provided", Type = "BadRequest" });
             }
 
             _logger.LogInformation("Successfully processed GetStepQuery");

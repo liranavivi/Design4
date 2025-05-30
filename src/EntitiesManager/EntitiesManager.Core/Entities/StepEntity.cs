@@ -6,23 +6,12 @@ namespace EntitiesManager.Core.Entities;
 
 public class StepEntity : BaseEntity
 {
-    [BsonElement("address")]
-    [Required(ErrorMessage = "Address is required")]
-    [StringLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
-    public string Address { get; set; } = string.Empty;
+    [BsonElement("entityId")]
+    [Required(ErrorMessage = "EntityId is required")]
+    public Guid EntityId { get; set; } = Guid.Empty;
 
-    [BsonElement("configuration")]
-    public Dictionary<string, object> Configuration { get; set; } = new();
+    [BsonElement("nextStepIds")]
+    public List<Guid> NextStepIds { get; set; } = new List<Guid>();
 
-    [BsonElement("version")]
-    [Required(ErrorMessage = "Version is required")]
-    [StringLength(50, ErrorMessage = "Version cannot exceed 50 characters")]
-    public string Version { get; set; } = string.Empty;
-
-    [BsonElement("name")]
-    [Required(ErrorMessage = "Name is required")]
-    [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
-    public string Name { get; set; } = string.Empty;
-
-    public override string GetCompositeKey() => $"{Address}_{Version}";
+    public override string GetCompositeKey() => string.Empty; // StepEntity no longer uses composite keys
 }

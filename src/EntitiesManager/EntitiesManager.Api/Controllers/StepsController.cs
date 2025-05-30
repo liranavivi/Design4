@@ -116,8 +116,8 @@ public class StepsController : ControllerBase
                 return NotFound($"Step with ID {id} not found");
             }
 
-            _logger.LogInformation("Successfully retrieved step entity by ID. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, User: {User}, RequestId: {RequestId}",
-                id, entity.Address, entity.Version, entity.Name, userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved step entity by ID. Id: {Id}, EntityId: {EntityId}, User: {User}, RequestId: {RequestId}",
+                id, entity.EntityId, userContext, HttpContext.TraceIdentifier);
 
             return Ok(entity);
         }
@@ -129,113 +129,59 @@ public class StepsController : ControllerBase
         }
     }
 
-    [HttpGet("by-key/{address}/{version}")]
-    public async Task<ActionResult<StepEntity>> GetByCompositeKey(string address, string version)
-    {
-        var userContext = User.Identity?.Name ?? "Anonymous";
-        var compositeKey = $"{address}_{version}";
+    // GetByCompositeKey method removed since StepEntity no longer uses composite keys
 
-        _logger.LogInformation("Starting GetByCompositeKey step request. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
-
-        try
-        {
-            var entity = await _repository.GetByCompositeKeyAsync(compositeKey);
-
-            if (entity == null)
-            {
-                _logger.LogWarning("Step entity not found by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                    address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
-                return NotFound($"Step with address '{address}' and version '{version}' not found");
-            }
-
-            _logger.LogInformation("Successfully retrieved step entity by composite key. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity.Id, address, version, entity.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
-
-            return Ok(entity);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving step entity by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
-            return StatusCode(500, "An error occurred while retrieving the step entity");
-        }
-    }
-
-    [HttpGet("by-address/{address}")]
-    public async Task<ActionResult<IEnumerable<StepEntity>>> GetByAddress(string address)
+    [HttpGet("by-entity-id/{entityId:guid}")]
+    public async Task<ActionResult<IEnumerable<StepEntity>>> GetByEntityId(Guid entityId)
     {
         var userContext = User.Identity?.Name ?? "Anonymous";
 
-        _logger.LogInformation("Starting GetByAddress step request. Address: {Address}, User: {User}, RequestId: {RequestId}",
-            address, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting GetByEntityId step request. EntityId: {EntityId}, User: {User}, RequestId: {RequestId}",
+            entityId, userContext, HttpContext.TraceIdentifier);
 
         try
         {
-            var entities = await _repository.GetByAddressAsync(address);
+            var entities = await _repository.GetByEntityIdAsync(entityId);
 
-            _logger.LogInformation("Successfully retrieved step entities by address. Address: {Address}, Count: {Count}, User: {User}, RequestId: {RequestId}",
-                address, entities.Count(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved step entities by entity ID. EntityId: {EntityId}, Count: {Count}, User: {User}, RequestId: {RequestId}",
+                entityId, entities.Count(), userContext, HttpContext.TraceIdentifier);
 
             return Ok(entities);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving step entities by address. Address: {Address}, User: {User}, RequestId: {RequestId}",
-                address, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error retrieving step entities by entity ID. EntityId: {EntityId}, User: {User}, RequestId: {RequestId}",
+                entityId, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while retrieving step entities");
         }
     }
 
-    [HttpGet("by-name/{name}")]
-    public async Task<ActionResult<IEnumerable<StepEntity>>> GetByName(string name)
+    [HttpGet("by-next-step-id/{nextStepId:guid}")]
+    public async Task<ActionResult<IEnumerable<StepEntity>>> GetByNextStepId(Guid nextStepId)
     {
         var userContext = User.Identity?.Name ?? "Anonymous";
 
-        _logger.LogInformation("Starting GetByName step request. Name: {Name}, User: {User}, RequestId: {RequestId}",
-            name, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting GetByNextStepId step request. NextStepId: {NextStepId}, User: {User}, RequestId: {RequestId}",
+            nextStepId, userContext, HttpContext.TraceIdentifier);
 
         try
         {
-            var entities = await _repository.GetByNameAsync(name);
+            var entities = await _repository.GetByNextStepIdAsync(nextStepId);
 
-            _logger.LogInformation("Successfully retrieved step entities by name. Name: {Name}, Count: {Count}, User: {User}, RequestId: {RequestId}",
-                name, entities.Count(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved step entities by next step ID. NextStepId: {NextStepId}, Count: {Count}, User: {User}, RequestId: {RequestId}",
+                nextStepId, entities.Count(), userContext, HttpContext.TraceIdentifier);
 
             return Ok(entities);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving step entities by name. Name: {Name}, User: {User}, RequestId: {RequestId}",
-                name, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error retrieving step entities by next step ID. NextStepId: {NextStepId}, User: {User}, RequestId: {RequestId}",
+                nextStepId, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while retrieving step entities");
         }
     }
 
-    [HttpGet("by-version/{version}")]
-    public async Task<ActionResult<IEnumerable<StepEntity>>> GetByVersion(string version)
-    {
-        var userContext = User.Identity?.Name ?? "Anonymous";
-
-        _logger.LogInformation("Starting GetByVersion step request. Version: {Version}, User: {User}, RequestId: {RequestId}",
-            version, userContext, HttpContext.TraceIdentifier);
-
-        try
-        {
-            var entities = await _repository.GetByVersionAsync(version);
-
-            _logger.LogInformation("Successfully retrieved step entities by version. Version: {Version}, Count: {Count}, User: {User}, RequestId: {RequestId}",
-                version, entities.Count(), userContext, HttpContext.TraceIdentifier);
-
-            return Ok(entities);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving step entities by version. Version: {Version}, User: {User}, RequestId: {RequestId}",
-                version, userContext, HttpContext.TraceIdentifier);
-            return StatusCode(500, "An error occurred while retrieving step entities");
-        }
-    }
+    // GetByName and GetByVersion methods removed since StepEntity no longer has these properties
 
     [HttpPost]
     public async Task<ActionResult<StepEntity>> Create([FromBody] StepEntity entity)
@@ -243,8 +189,8 @@ public class StepsController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Create step request. Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Create step request. EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            entity?.EntityId, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -258,33 +204,33 @@ public class StepsController : ControllerBase
             entity!.CreatedBy = userContext;
             entity.Id = Guid.Empty;
 
-            _logger.LogDebug("Creating step entity with details. Address: {Address}, Version: {Version}, Name: {Name}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
-                entity.Address, entity.Version, entity.Name, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Creating step entity with details. EntityId: {EntityId}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
+                entity.EntityId, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
 
             var created = await _repository.CreateAsync(entity);
 
             if (created.Id == Guid.Empty)
             {
-                _logger.LogError("MongoDB failed to generate ID for new StepEntity. Address: {Address}, Version: {Version}, User: {User}, RequestId: {RequestId}",
-                    entity.Address, entity.Version, userContext, HttpContext.TraceIdentifier);
+                _logger.LogError("MongoDB failed to generate ID for new StepEntity. EntityId: {EntityId}, User: {User}, RequestId: {RequestId}",
+                    entity.EntityId, userContext, HttpContext.TraceIdentifier);
                 return StatusCode(500, "Failed to generate entity ID");
             }
 
-            _logger.LogInformation("Successfully created step entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                created.Id, created.Address, created.Version, created.Name, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully created step entity. Id: {Id}, EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                created.Id, created.EntityId, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict creating step entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict creating step entity. EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.EntityId, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating step entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error creating step entity. EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.EntityId, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while creating the step");
         }
     }
@@ -295,8 +241,8 @@ public class StepsController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Update step request. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            id, entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Update step request. Id: {Id}, EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            id, entity?.EntityId, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -322,8 +268,8 @@ public class StepsController : ControllerBase
                 return NotFound($"Step with ID {id} not found");
             }
 
-            _logger.LogDebug("Updating step entity. Id: {Id}, OldAddress: {OldAddress}, NewAddress: {NewAddress}, OldVersion: {OldVersion}, NewVersion: {NewVersion}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, entity.Address, existing.Version, entity.Version, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Updating step entity. Id: {Id}, OldEntityId: {OldEntityId}, NewEntityId: {NewEntityId}, User: {User}, RequestId: {RequestId}",
+                id, existing.EntityId, entity.EntityId, userContext, HttpContext.TraceIdentifier);
 
             // Preserve audit fields
             entity.CreatedAt = existing.CreatedAt;
@@ -332,15 +278,15 @@ public class StepsController : ControllerBase
 
             var updated = await _repository.UpdateAsync(entity);
 
-            _logger.LogInformation("Successfully updated step entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                updated.Id, updated.Address, updated.Version, updated.Name, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully updated step entity. Id: {Id}, EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                updated.Id, updated.EntityId, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return Ok(updated);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict updating step entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict updating step entity. Id: {Id}, EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.EntityId, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (EntityNotFoundException)
@@ -351,8 +297,8 @@ public class StepsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating step entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error updating step entity. Id: {Id}, EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.EntityId, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while updating the step");
         }
     }
@@ -375,8 +321,8 @@ public class StepsController : ControllerBase
                 return NotFound($"Step with ID {id} not found");
             }
 
-            _logger.LogDebug("Deleting step entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Deleting step entity. Id: {Id}, EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.EntityId, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             var deleted = await _repository.DeleteAsync(id);
             if (!deleted)
@@ -386,8 +332,8 @@ public class StepsController : ControllerBase
                 return StatusCode(500, "Failed to delete the step entity");
             }
 
-            _logger.LogInformation("Successfully deleted step entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully deleted step entity. Id: {Id}, EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.EntityId, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
         }

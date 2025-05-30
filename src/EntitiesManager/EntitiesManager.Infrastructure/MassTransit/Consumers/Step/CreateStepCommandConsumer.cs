@@ -26,18 +26,16 @@ public class CreateStepCommandConsumer : IConsumer<CreateStepCommand>
 
     public async Task Consume(ConsumeContext<CreateStepCommand> context)
     {
-        _logger.LogInformation("Processing CreateStepCommand for {Address}_{Version}",
-            context.Message.Address, context.Message.Version);
+        _logger.LogInformation("Processing CreateStepCommand for EntityId: {EntityId}",
+            context.Message.EntityId);
 
         try
         {
             var entity = new StepEntity
             {
-                Address = context.Message.Address,
-                Version = context.Message.Version,
-                Name = context.Message.Name,
+                EntityId = context.Message.EntityId,
+                NextStepIds = context.Message.NextStepIds ?? new List<Guid>(),
                 Description = context.Message.Description,
-                Configuration = context.Message.Configuration ?? new Dictionary<string, object>(),
                 CreatedBy = context.Message.RequestedBy
             };
 
@@ -46,19 +44,17 @@ public class CreateStepCommandConsumer : IConsumer<CreateStepCommand>
             await _publishEndpoint.Publish(new StepCreatedEvent
             {
                 Id = created.Id,
-                Address = created.Address,
-                Version = created.Version,
-                Name = created.Name,
+                EntityId = created.EntityId,
+                NextStepIds = created.NextStepIds,
                 Description = created.Description,
-                Configuration = created.Configuration,
                 CreatedAt = created.CreatedAt,
                 CreatedBy = created.CreatedBy
             });
 
             await context.RespondAsync(created);
 
-            _logger.LogInformation("Successfully processed CreateStepCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogInformation("Successfully processed CreateStepCommand for EntityId: {EntityId}",
+                context.Message.EntityId);
         }
         catch (DuplicateKeyException ex)
         {
@@ -67,8 +63,8 @@ public class CreateStepCommandConsumer : IConsumer<CreateStepCommand>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing CreateStepCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogError(ex, "Error processing CreateStepCommand for EntityId: {EntityId}",
+                context.Message.EntityId);
             throw;
         }
     }

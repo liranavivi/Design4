@@ -2,22 +2,18 @@
 
 public class CreateStepCommand
 {
-    public string Address { get; set; } = string.Empty;
-    public string Version { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
+    public Guid EntityId { get; set; } = Guid.Empty;
+    public List<Guid> NextStepIds { get; set; } = new List<Guid>();
     public string Description { get; set; } = string.Empty;
-    public Dictionary<string, object> Configuration { get; set; } = new();
     public string RequestedBy { get; set; } = string.Empty;
 }
 
 public class UpdateStepCommand
 {
     public Guid Id { get; set; }
-    public string Address { get; set; } = string.Empty;
-    public string Version { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
+    public Guid EntityId { get; set; } = Guid.Empty;
+    public List<Guid> NextStepIds { get; set; } = new List<Guid>();
     public string Description { get; set; } = string.Empty;
-    public Dictionary<string, object> Configuration { get; set; } = new();
     public string RequestedBy { get; set; } = string.Empty;
 }
 
@@ -30,5 +26,6 @@ public class DeleteStepCommand
 public class GetStepQuery
 {
     public Guid? Id { get; set; }
-    public string? CompositeKey { get; set; }
+    public Guid? EntityId { get; set; }
+    // CompositeKey removed since StepEntity no longer uses composite keys
 }
