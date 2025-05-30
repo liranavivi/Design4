@@ -26,18 +26,19 @@ public class CreateProcessorCommandConsumer : IConsumer<CreateProcessorCommand>
 
     public async Task Consume(ConsumeContext<CreateProcessorCommand> context)
     {
-        _logger.LogInformation("Processing CreateProcessorCommand for {Address}_{Version}",
-            context.Message.Address, context.Message.Version);
+        _logger.LogInformation("Processing CreateProcessorCommand for {Version}_{Name}",
+            context.Message.Version, context.Message.Name);
 
         try
         {
             var entity = new ProcessorEntity
             {
-                Address = context.Message.Address,
                 Version = context.Message.Version,
                 Name = context.Message.Name,
                 Description = context.Message.Description,
-                Configuration = context.Message.Configuration ?? new Dictionary<string, object>(),
+                ProtocolId = context.Message.ProtocolId,
+                InputSchema = context.Message.InputSchema,
+                OutputSchema = context.Message.OutputSchema,
                 CreatedBy = context.Message.RequestedBy
             };
 
@@ -46,19 +47,20 @@ public class CreateProcessorCommandConsumer : IConsumer<CreateProcessorCommand>
             await _publishEndpoint.Publish(new ProcessorCreatedEvent
             {
                 Id = created.Id,
-                Address = created.Address,
                 Version = created.Version,
                 Name = created.Name,
                 Description = created.Description,
-                Configuration = created.Configuration,
+                ProtocolId = created.ProtocolId,
+                InputSchema = created.InputSchema,
+                OutputSchema = created.OutputSchema,
                 CreatedAt = created.CreatedAt,
                 CreatedBy = created.CreatedBy
             });
 
             await context.RespondAsync(created);
 
-            _logger.LogInformation("Successfully processed CreateProcessorCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogInformation("Successfully processed CreateProcessorCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
         }
         catch (DuplicateKeyException ex)
         {
@@ -67,8 +69,8 @@ public class CreateProcessorCommandConsumer : IConsumer<CreateProcessorCommand>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing CreateProcessorCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogError(ex, "Error processing CreateProcessorCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
             throw;
         }
     }

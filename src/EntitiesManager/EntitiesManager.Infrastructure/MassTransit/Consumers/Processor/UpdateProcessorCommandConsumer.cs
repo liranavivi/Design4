@@ -38,11 +38,12 @@ public class UpdateProcessorCommandConsumer : IConsumer<UpdateProcessorCommand>
             }
 
             // Update properties
-            existing.Address = context.Message.Address;
             existing.Version = context.Message.Version;
             existing.Name = context.Message.Name;
             existing.Description = context.Message.Description;
-            existing.Configuration = context.Message.Configuration ?? new Dictionary<string, object>();
+            existing.ProtocolId = context.Message.ProtocolId;
+            existing.InputSchema = context.Message.InputSchema;
+            existing.OutputSchema = context.Message.OutputSchema;
             existing.UpdatedBy = context.Message.RequestedBy;
 
             var updated = await _repository.UpdateAsync(existing);
@@ -50,11 +51,12 @@ public class UpdateProcessorCommandConsumer : IConsumer<UpdateProcessorCommand>
             await _publishEndpoint.Publish(new ProcessorUpdatedEvent
             {
                 Id = updated.Id,
-                Address = updated.Address,
                 Version = updated.Version,
                 Name = updated.Name,
                 Description = updated.Description,
-                Configuration = updated.Configuration,
+                ProtocolId = updated.ProtocolId,
+                InputSchema = updated.InputSchema,
+                OutputSchema = updated.OutputSchema,
                 UpdatedAt = updated.UpdatedAt,
                 UpdatedBy = updated.UpdatedBy
             });
