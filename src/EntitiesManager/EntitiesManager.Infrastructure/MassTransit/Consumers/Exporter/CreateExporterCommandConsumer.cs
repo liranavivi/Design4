@@ -26,18 +26,18 @@ public class CreateExporterCommandConsumer : IConsumer<CreateExporterCommand>
 
     public async Task Consume(ConsumeContext<CreateExporterCommand> context)
     {
-        _logger.LogInformation("Processing CreateExporterCommand for {Address}_{Version}",
-            context.Message.Address, context.Message.Version);
+        _logger.LogInformation("Processing CreateExporterCommand for {Version}_{Name}",
+            context.Message.Version, context.Message.Name);
 
         try
         {
             var entity = new ExporterEntity
             {
-                Address = context.Message.Address,
                 Version = context.Message.Version,
                 Name = context.Message.Name,
                 Description = context.Message.Description,
-                Configuration = context.Message.Configuration ?? new Dictionary<string, object>(),
+                ProtocolId = context.Message.ProtocolId,
+                InputSchema = context.Message.InputSchema,
                 CreatedBy = context.Message.RequestedBy
             };
 
@@ -46,19 +46,19 @@ public class CreateExporterCommandConsumer : IConsumer<CreateExporterCommand>
             await _publishEndpoint.Publish(new ExporterCreatedEvent
             {
                 Id = created.Id,
-                Address = created.Address,
                 Version = created.Version,
                 Name = created.Name,
                 Description = created.Description,
-                Configuration = created.Configuration,
+                ProtocolId = created.ProtocolId,
+                InputSchema = created.InputSchema,
                 CreatedAt = created.CreatedAt,
                 CreatedBy = created.CreatedBy
             });
 
             await context.RespondAsync(created);
 
-            _logger.LogInformation("Successfully processed CreateExporterCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogInformation("Successfully processed CreateExporterCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
         }
         catch (DuplicateKeyException ex)
         {
@@ -67,8 +67,8 @@ public class CreateExporterCommandConsumer : IConsumer<CreateExporterCommand>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing CreateExporterCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogError(ex, "Error processing CreateExporterCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
             throw;
         }
     }

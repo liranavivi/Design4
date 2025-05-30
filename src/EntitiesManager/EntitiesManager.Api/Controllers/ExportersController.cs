@@ -116,8 +116,8 @@ public class ExportersController : ControllerBase
                 return NotFound($"Exporter with ID {id} not found");
             }
 
-            _logger.LogInformation("Successfully retrieved exporter entity by ID. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, User: {User}, RequestId: {RequestId}",
-                id, entity.Address, entity.Version, entity.Name, userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved exporter entity by ID. Id: {Id}, Version: {Version}, Name: {Name}, User: {User}, RequestId: {RequestId}",
+                id, entity.Version, entity.Name, userContext, HttpContext.TraceIdentifier);
 
             return Ok(entity);
         }
@@ -129,14 +129,14 @@ public class ExportersController : ControllerBase
         }
     }
 
-    [HttpGet("by-key/{address}/{version}")]
-    public async Task<ActionResult<ExporterEntity>> GetByCompositeKey(string address, string version)
+    [HttpGet("by-key/{version}")]
+    public async Task<ActionResult<ExporterEntity>> GetByCompositeKey(string version)
     {
         var userContext = User.Identity?.Name ?? "Anonymous";
-        var compositeKey = $"{address}_{version}";
+        var compositeKey = version; // Version is now the composite key
 
-        _logger.LogInformation("Starting GetByCompositeKey exporter request. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting GetByCompositeKey exporter request. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            version, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         try
         {
@@ -144,48 +144,25 @@ public class ExportersController : ControllerBase
 
             if (entity == null)
             {
-                _logger.LogWarning("Exporter entity not found by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                    address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
-                return NotFound($"Exporter with address '{address}' and version '{version}' not found");
+                _logger.LogWarning("Exporter entity not found by composite key. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                    version, compositeKey, userContext, HttpContext.TraceIdentifier);
+                return NotFound($"Exporter with version '{version}' not found");
             }
 
-            _logger.LogInformation("Successfully retrieved exporter entity by composite key. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity.Id, address, version, entity.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved exporter entity by composite key. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity.Id, version, entity.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
 
             return Ok(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving exporter entity by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error retrieving exporter entity by composite key. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while retrieving the exporter entity");
         }
     }
 
-    [HttpGet("by-address/{address}")]
-    public async Task<ActionResult<IEnumerable<ExporterEntity>>> GetByAddress(string address)
-    {
-        var userContext = User.Identity?.Name ?? "Anonymous";
-
-        _logger.LogInformation("Starting GetByAddress exporter request. Address: {Address}, User: {User}, RequestId: {RequestId}",
-            address, userContext, HttpContext.TraceIdentifier);
-
-        try
-        {
-            var entities = await _repository.GetByAddressAsync(address);
-
-            _logger.LogInformation("Successfully retrieved exporter entities by address. Address: {Address}, Count: {Count}, User: {User}, RequestId: {RequestId}",
-                address, entities.Count(), userContext, HttpContext.TraceIdentifier);
-
-            return Ok(entities);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving exporter entities by address. Address: {Address}, User: {User}, RequestId: {RequestId}",
-                address, userContext, HttpContext.TraceIdentifier);
-            return StatusCode(500, "An error occurred while retrieving exporter entities");
-        }
-    }
+    // GetByAddress method removed since ExporterEntity no longer has Address property
 
     [HttpGet("by-name/{name}")]
     public async Task<ActionResult<IEnumerable<ExporterEntity>>> GetByName(string name)
@@ -243,8 +220,8 @@ public class ExportersController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Create exporter request. Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Create exporter request. Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -258,33 +235,33 @@ public class ExportersController : ControllerBase
             entity!.CreatedBy = userContext;
             entity.Id = Guid.Empty;
 
-            _logger.LogDebug("Creating exporter entity with details. Address: {Address}, Version: {Version}, Name: {Name}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
-                entity.Address, entity.Version, entity.Name, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Creating exporter entity with details. Version: {Version}, Name: {Name}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
+                entity.Version, entity.Name, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
 
             var created = await _repository.CreateAsync(entity);
 
             if (created.Id == Guid.Empty)
             {
-                _logger.LogError("MongoDB failed to generate ID for new ExporterEntity. Address: {Address}, Version: {Version}, User: {User}, RequestId: {RequestId}",
-                    entity.Address, entity.Version, userContext, HttpContext.TraceIdentifier);
+                _logger.LogError("MongoDB failed to generate ID for new ExporterEntity. Version: {Version}, User: {User}, RequestId: {RequestId}",
+                    entity.Version, userContext, HttpContext.TraceIdentifier);
                 return StatusCode(500, "Failed to generate entity ID");
             }
 
-            _logger.LogInformation("Successfully created exporter entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                created.Id, created.Address, created.Version, created.Name, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully created exporter entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                created.Id, created.Version, created.Name, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict creating exporter entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict creating exporter entity. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating exporter entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error creating exporter entity. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while creating the exporter");
         }
     }
@@ -295,8 +272,8 @@ public class ExportersController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Update exporter request. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            id, entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Update exporter request. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            id, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -322,8 +299,8 @@ public class ExportersController : ControllerBase
                 return NotFound($"Exporter with ID {id} not found");
             }
 
-            _logger.LogDebug("Updating exporter entity. Id: {Id}, OldAddress: {OldAddress}, NewAddress: {NewAddress}, OldVersion: {OldVersion}, NewVersion: {NewVersion}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, entity.Address, existing.Version, entity.Version, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Updating exporter entity. Id: {Id}, OldVersion: {OldVersion}, NewVersion: {NewVersion}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, entity.Version, userContext, HttpContext.TraceIdentifier);
 
             // Preserve audit fields
             entity.CreatedAt = existing.CreatedAt;
@@ -332,15 +309,15 @@ public class ExportersController : ControllerBase
 
             var updated = await _repository.UpdateAsync(entity);
 
-            _logger.LogInformation("Successfully updated exporter entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                updated.Id, updated.Address, updated.Version, updated.Name, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully updated exporter entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                updated.Id, updated.Version, updated.Name, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return Ok(updated);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict updating exporter entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict updating exporter entity. Id: {Id}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (EntityNotFoundException)
@@ -351,8 +328,8 @@ public class ExportersController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating exporter entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error updating exporter entity. Id: {Id}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while updating the exporter");
         }
     }
@@ -375,8 +352,8 @@ public class ExportersController : ControllerBase
                 return NotFound($"Exporter with ID {id} not found");
             }
 
-            _logger.LogDebug("Deleting exporter entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Deleting exporter entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             var deleted = await _repository.DeleteAsync(id);
             if (!deleted)
@@ -386,8 +363,8 @@ public class ExportersController : ControllerBase
                 return StatusCode(500, "Failed to delete the exporter entity");
             }
 
-            _logger.LogInformation("Successfully deleted exporter entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully deleted exporter entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
         }

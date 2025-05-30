@@ -38,11 +38,11 @@ public class UpdateExporterCommandConsumer : IConsumer<UpdateExporterCommand>
             }
 
             // Update properties
-            existing.Address = context.Message.Address;
             existing.Version = context.Message.Version;
             existing.Name = context.Message.Name;
             existing.Description = context.Message.Description;
-            existing.Configuration = context.Message.Configuration ?? new Dictionary<string, object>();
+            existing.ProtocolId = context.Message.ProtocolId;
+            existing.InputSchema = context.Message.InputSchema;
             existing.UpdatedBy = context.Message.RequestedBy;
 
             var updated = await _repository.UpdateAsync(existing);
@@ -50,11 +50,11 @@ public class UpdateExporterCommandConsumer : IConsumer<UpdateExporterCommand>
             await _publishEndpoint.Publish(new ExporterUpdatedEvent
             {
                 Id = updated.Id,
-                Address = updated.Address,
                 Version = updated.Version,
                 Name = updated.Name,
                 Description = updated.Description,
-                Configuration = updated.Configuration,
+                ProtocolId = updated.ProtocolId,
+                InputSchema = updated.InputSchema,
                 UpdatedAt = updated.UpdatedAt,
                 UpdatedBy = updated.UpdatedBy
             });

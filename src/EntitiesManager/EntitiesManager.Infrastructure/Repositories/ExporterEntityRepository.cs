@@ -17,40 +17,25 @@ public class ExporterEntityRepository : BaseRepository<ExporterEntity>, IExporte
 
     protected override FilterDefinition<ExporterEntity> CreateCompositeKeyFilter(string compositeKey)
     {
-        var parts = compositeKey.Split('_', 2);
-        if (parts.Length != 2)
-            throw new ArgumentException("Invalid composite key format for ExporterEntity. Expected format: 'address_version'");
-
-        return Builders<ExporterEntity>.Filter.And(
-            Builders<ExporterEntity>.Filter.Eq(x => x.Address, parts[0]),
-            Builders<ExporterEntity>.Filter.Eq(x => x.Version, parts[1])
-        );
+        // ExporterEntity now uses only Version as composite key
+        return Builders<ExporterEntity>.Filter.Eq(x => x.Version, compositeKey);
     }
 
     protected override void CreateIndexes()
     {
-        // Composite key index for uniqueness
-        var compositeKeyIndex = Builders<ExporterEntity>.IndexKeys
-            .Ascending(x => x.Address)
-            .Ascending(x => x.Version);
-
+        // Version index for uniqueness (since Version is now the composite key)
+        var versionIndex = Builders<ExporterEntity>.IndexKeys.Ascending(x => x.Version);
         var indexOptions = new CreateIndexOptions { Unique = true };
-        _collection.Indexes.CreateOne(new CreateIndexModel<ExporterEntity>(compositeKeyIndex, indexOptions));
+        _collection.Indexes.CreateOne(new CreateIndexModel<ExporterEntity>(versionIndex, indexOptions));
 
         // Additional indexes for common queries
         _collection.Indexes.CreateOne(new CreateIndexModel<ExporterEntity>(
             Builders<ExporterEntity>.IndexKeys.Ascending(x => x.Name)));
         _collection.Indexes.CreateOne(new CreateIndexModel<ExporterEntity>(
-            Builders<ExporterEntity>.IndexKeys.Ascending(x => x.Address)));
-        _collection.Indexes.CreateOne(new CreateIndexModel<ExporterEntity>(
-            Builders<ExporterEntity>.IndexKeys.Ascending(x => x.Version)));
+            Builders<ExporterEntity>.IndexKeys.Ascending(x => x.ProtocolId)));
     }
 
-    public async Task<IEnumerable<ExporterEntity>> GetByAddressAsync(string address)
-    {
-        var filter = Builders<ExporterEntity>.Filter.Eq(x => x.Address, address);
-        return await _collection.Find(filter).ToListAsync();
-    }
+    // GetByAddressAsync method removed since ExporterEntity no longer has Address property
 
     public async Task<IEnumerable<ExporterEntity>> GetByVersionAsync(string version)
     {
@@ -69,11 +54,11 @@ public class ExporterEntityRepository : BaseRepository<ExporterEntity>, IExporte
         var createdEvent = new ExporterCreatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            ProtocolId = entity.ProtocolId,
+            InputSchema = entity.InputSchema,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy
         };
@@ -85,11 +70,11 @@ public class ExporterEntityRepository : BaseRepository<ExporterEntity>, IExporte
         var updatedEvent = new ExporterUpdatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            ProtocolId = entity.ProtocolId,
+            InputSchema = entity.InputSchema,
             UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
         };

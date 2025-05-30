@@ -5,7 +5,7 @@ namespace EntitiesManager.Core.Interfaces.Repositories;
 
 public interface IExporterEntityRepository : IBaseRepository<ExporterEntity>
 {
-    Task<IEnumerable<ExporterEntity>> GetByAddressAsync(string address);
+    // GetByAddressAsync method removed since ExporterEntity no longer has Address property
     Task<IEnumerable<ExporterEntity>> GetByVersionAsync(string version);
     Task<IEnumerable<ExporterEntity>> GetByNameAsync(string name);
 }

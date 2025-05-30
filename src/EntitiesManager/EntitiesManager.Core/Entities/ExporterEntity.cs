@@ -6,14 +6,6 @@ namespace EntitiesManager.Core.Entities;
 
 public class ExporterEntity : BaseEntity
 {
-    [BsonElement("address")]
-    [Required(ErrorMessage = "Address is required")]
-    [StringLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
-    public string Address { get; set; } = string.Empty;
-
-    [BsonElement("configuration")]
-    public Dictionary<string, object> Configuration { get; set; } = new();
-
     [BsonElement("version")]
     [Required(ErrorMessage = "Version is required")]
     [StringLength(50, ErrorMessage = "Version cannot exceed 50 characters")]
@@ -24,5 +16,14 @@ public class ExporterEntity : BaseEntity
     [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
     public string Name { get; set; } = string.Empty;
 
-    public override string GetCompositeKey() => $"{Address}_{Version}";
+    [BsonElement("protocolId")]
+    [Required(ErrorMessage = "ProtocolId is required")]
+    public Guid ProtocolId { get; set; } = Guid.Empty;
+
+    [BsonElement("inputSchema")]
+    [Required(ErrorMessage = "InputSchema is required")]
+    [StringLength(5000, ErrorMessage = "InputSchema cannot exceed 5000 characters")]
+    public string InputSchema { get; set; } = string.Empty;
+
+    public override string GetCompositeKey() => $"{Version}";
 }

@@ -26,18 +26,18 @@ public class CreateImporterCommandConsumer : IConsumer<CreateImporterCommand>
 
     public async Task Consume(ConsumeContext<CreateImporterCommand> context)
     {
-        _logger.LogInformation("Processing CreateImporterCommand for {Address}_{Version}",
-            context.Message.Address, context.Message.Version);
+        _logger.LogInformation("Processing CreateImporterCommand for {Version}_{Name}",
+            context.Message.Version, context.Message.Name);
 
         try
         {
             var entity = new ImporterEntity
             {
-                Address = context.Message.Address,
                 Version = context.Message.Version,
                 Name = context.Message.Name,
                 Description = context.Message.Description,
-                Configuration = context.Message.Configuration ?? new Dictionary<string, object>(),
+                ProtocolId = context.Message.ProtocolId,
+                OutputSchema = context.Message.OutputSchema,
                 CreatedBy = context.Message.RequestedBy
             };
 
@@ -46,19 +46,19 @@ public class CreateImporterCommandConsumer : IConsumer<CreateImporterCommand>
             await _publishEndpoint.Publish(new ImporterCreatedEvent
             {
                 Id = created.Id,
-                Address = created.Address,
                 Version = created.Version,
                 Name = created.Name,
                 Description = created.Description,
-                Configuration = created.Configuration,
+                ProtocolId = created.ProtocolId,
+                OutputSchema = created.OutputSchema,
                 CreatedAt = created.CreatedAt,
                 CreatedBy = created.CreatedBy
             });
 
             await context.RespondAsync(created);
 
-            _logger.LogInformation("Successfully processed CreateImporterCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogInformation("Successfully processed CreateImporterCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
         }
         catch (DuplicateKeyException ex)
         {
@@ -67,8 +67,8 @@ public class CreateImporterCommandConsumer : IConsumer<CreateImporterCommand>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing CreateImporterCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogError(ex, "Error processing CreateImporterCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
             throw;
         }
     }

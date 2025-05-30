@@ -116,8 +116,8 @@ public class ImportersController : ControllerBase
                 return NotFound($"Importer with ID {id} not found");
             }
 
-            _logger.LogInformation("Successfully retrieved importer entity by ID. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, User: {User}, RequestId: {RequestId}",
-                id, entity.Address, entity.Version, entity.Name, userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved importer entity by ID. Id: {Id}, Version: {Version}, Name: {Name}, User: {User}, RequestId: {RequestId}",
+                id, entity.Version, entity.Name, userContext, HttpContext.TraceIdentifier);
 
             return Ok(entity);
         }
@@ -129,14 +129,14 @@ public class ImportersController : ControllerBase
         }
     }
 
-    [HttpGet("by-key/{address}/{version}")]
-    public async Task<ActionResult<ImporterEntity>> GetByCompositeKey(string address, string version)
+    [HttpGet("by-key/{version}")]
+    public async Task<ActionResult<ImporterEntity>> GetByCompositeKey(string version)
     {
         var userContext = User.Identity?.Name ?? "Anonymous";
-        var compositeKey = $"{address}_{version}";
+        var compositeKey = version; // Version is now the composite key
 
-        _logger.LogInformation("Starting GetByCompositeKey importer request. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting GetByCompositeKey importer request. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            version, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         try
         {
@@ -144,48 +144,25 @@ public class ImportersController : ControllerBase
 
             if (entity == null)
             {
-                _logger.LogWarning("Importer entity not found by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                    address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
-                return NotFound($"Importer with address '{address}' and version '{version}' not found");
+                _logger.LogWarning("Importer entity not found by composite key. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                    version, compositeKey, userContext, HttpContext.TraceIdentifier);
+                return NotFound($"Importer with version '{version}' not found");
             }
 
-            _logger.LogInformation("Successfully retrieved importer entity by composite key. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity.Id, address, version, entity.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved importer entity by composite key. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity.Id, version, entity.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
 
             return Ok(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving importer entity by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error retrieving importer entity by composite key. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while retrieving the importer entity");
         }
     }
 
-    [HttpGet("by-address/{address}")]
-    public async Task<ActionResult<IEnumerable<ImporterEntity>>> GetByAddress(string address)
-    {
-        var userContext = User.Identity?.Name ?? "Anonymous";
-
-        _logger.LogInformation("Starting GetByAddress importer request. Address: {Address}, User: {User}, RequestId: {RequestId}",
-            address, userContext, HttpContext.TraceIdentifier);
-
-        try
-        {
-            var entities = await _repository.GetByAddressAsync(address);
-
-            _logger.LogInformation("Successfully retrieved importer entities by address. Address: {Address}, Count: {Count}, User: {User}, RequestId: {RequestId}",
-                address, entities.Count(), userContext, HttpContext.TraceIdentifier);
-
-            return Ok(entities);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving importer entities by address. Address: {Address}, User: {User}, RequestId: {RequestId}",
-                address, userContext, HttpContext.TraceIdentifier);
-            return StatusCode(500, "An error occurred while retrieving importer entities");
-        }
-    }
+    // GetByAddress method removed since ImporterEntity no longer has Address property
 
     [HttpGet("by-name/{name}")]
     public async Task<ActionResult<IEnumerable<ImporterEntity>>> GetByName(string name)
@@ -243,8 +220,8 @@ public class ImportersController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Create importer request. Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Create importer request. Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -258,33 +235,33 @@ public class ImportersController : ControllerBase
             entity!.CreatedBy = userContext;
             entity.Id = Guid.Empty;
 
-            _logger.LogDebug("Creating importer entity with details. Address: {Address}, Version: {Version}, Name: {Name}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
-                entity.Address, entity.Version, entity.Name, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Creating importer entity with details. Version: {Version}, Name: {Name}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
+                entity.Version, entity.Name, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
 
             var created = await _repository.CreateAsync(entity);
 
             if (created.Id == Guid.Empty)
             {
-                _logger.LogError("MongoDB failed to generate ID for new ImporterEntity. Address: {Address}, Version: {Version}, User: {User}, RequestId: {RequestId}",
-                    entity.Address, entity.Version, userContext, HttpContext.TraceIdentifier);
+                _logger.LogError("MongoDB failed to generate ID for new ImporterEntity. Version: {Version}, User: {User}, RequestId: {RequestId}",
+                    entity.Version, userContext, HttpContext.TraceIdentifier);
                 return StatusCode(500, "Failed to generate entity ID");
             }
 
-            _logger.LogInformation("Successfully created importer entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                created.Id, created.Address, created.Version, created.Name, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully created importer entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                created.Id, created.Version, created.Name, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict creating importer entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict creating importer entity. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating importer entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error creating importer entity. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while creating the importer");
         }
     }
@@ -295,8 +272,8 @@ public class ImportersController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Update importer request. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            id, entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Update importer request. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            id, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -322,8 +299,8 @@ public class ImportersController : ControllerBase
                 return NotFound($"Importer with ID {id} not found");
             }
 
-            _logger.LogDebug("Updating importer entity. Id: {Id}, OldAddress: {OldAddress}, NewAddress: {NewAddress}, OldVersion: {OldVersion}, NewVersion: {NewVersion}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, entity.Address, existing.Version, entity.Version, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Updating importer entity. Id: {Id}, OldVersion: {OldVersion}, NewVersion: {NewVersion}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, entity.Version, userContext, HttpContext.TraceIdentifier);
 
             // Preserve audit fields
             entity.CreatedAt = existing.CreatedAt;
@@ -332,15 +309,15 @@ public class ImportersController : ControllerBase
 
             var updated = await _repository.UpdateAsync(entity);
 
-            _logger.LogInformation("Successfully updated importer entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                updated.Id, updated.Address, updated.Version, updated.Name, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully updated importer entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                updated.Id, updated.Version, updated.Name, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return Ok(updated);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict updating importer entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict updating importer entity. Id: {Id}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (EntityNotFoundException)
@@ -351,8 +328,8 @@ public class ImportersController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating importer entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error updating importer entity. Id: {Id}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while updating the importer");
         }
     }
@@ -375,8 +352,8 @@ public class ImportersController : ControllerBase
                 return NotFound($"Importer with ID {id} not found");
             }
 
-            _logger.LogDebug("Deleting importer entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Deleting importer entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             var deleted = await _repository.DeleteAsync(id);
             if (!deleted)
@@ -386,8 +363,8 @@ public class ImportersController : ControllerBase
                 return StatusCode(500, "Failed to delete the importer entity");
             }
 
-            _logger.LogInformation("Successfully deleted importer entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully deleted importer entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
         }

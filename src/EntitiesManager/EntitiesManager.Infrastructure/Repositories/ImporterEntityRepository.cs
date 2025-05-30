@@ -17,40 +17,25 @@ public class ImporterEntityRepository : BaseRepository<ImporterEntity>, IImporte
 
     protected override FilterDefinition<ImporterEntity> CreateCompositeKeyFilter(string compositeKey)
     {
-        var parts = compositeKey.Split('_', 2);
-        if (parts.Length != 2)
-            throw new ArgumentException("Invalid composite key format for ImporterEntity. Expected format: 'address_version'");
-
-        return Builders<ImporterEntity>.Filter.And(
-            Builders<ImporterEntity>.Filter.Eq(x => x.Address, parts[0]),
-            Builders<ImporterEntity>.Filter.Eq(x => x.Version, parts[1])
-        );
+        // ImporterEntity now uses only Version as composite key
+        return Builders<ImporterEntity>.Filter.Eq(x => x.Version, compositeKey);
     }
 
     protected override void CreateIndexes()
     {
-        // Composite key index for uniqueness
-        var compositeKeyIndex = Builders<ImporterEntity>.IndexKeys
-            .Ascending(x => x.Address)
-            .Ascending(x => x.Version);
-
+        // Version index for uniqueness (since Version is now the composite key)
+        var versionIndex = Builders<ImporterEntity>.IndexKeys.Ascending(x => x.Version);
         var indexOptions = new CreateIndexOptions { Unique = true };
-        _collection.Indexes.CreateOne(new CreateIndexModel<ImporterEntity>(compositeKeyIndex, indexOptions));
+        _collection.Indexes.CreateOne(new CreateIndexModel<ImporterEntity>(versionIndex, indexOptions));
 
         // Additional indexes for common queries
         _collection.Indexes.CreateOne(new CreateIndexModel<ImporterEntity>(
             Builders<ImporterEntity>.IndexKeys.Ascending(x => x.Name)));
         _collection.Indexes.CreateOne(new CreateIndexModel<ImporterEntity>(
-            Builders<ImporterEntity>.IndexKeys.Ascending(x => x.Address)));
-        _collection.Indexes.CreateOne(new CreateIndexModel<ImporterEntity>(
-            Builders<ImporterEntity>.IndexKeys.Ascending(x => x.Version)));
+            Builders<ImporterEntity>.IndexKeys.Ascending(x => x.ProtocolId)));
     }
 
-    public async Task<IEnumerable<ImporterEntity>> GetByAddressAsync(string address)
-    {
-        var filter = Builders<ImporterEntity>.Filter.Eq(x => x.Address, address);
-        return await _collection.Find(filter).ToListAsync();
-    }
+    // GetByAddressAsync method removed since ImporterEntity no longer has Address property
 
     public async Task<IEnumerable<ImporterEntity>> GetByVersionAsync(string version)
     {
@@ -69,11 +54,11 @@ public class ImporterEntityRepository : BaseRepository<ImporterEntity>, IImporte
         var createdEvent = new ImporterCreatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            ProtocolId = entity.ProtocolId,
+            OutputSchema = entity.OutputSchema,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy
         };
@@ -85,11 +70,11 @@ public class ImporterEntityRepository : BaseRepository<ImporterEntity>, IImporte
         var updatedEvent = new ImporterUpdatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            ProtocolId = entity.ProtocolId,
+            OutputSchema = entity.OutputSchema,
             UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
         };
