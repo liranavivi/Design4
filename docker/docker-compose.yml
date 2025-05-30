@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: entitiesmanager-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: EntitiesManagerDb
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - entitiesmanager-network
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: entitiesmanager-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - entitiesmanager-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: entitiesmanager-otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel-collector-config.yaml
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8888:8888"   # Prometheus metrics
+      - "8889:8889"   # Prometheus exporter metrics
+
+    networks:
+      - entitiesmanager-network
+
+
+
+volumes:
+  mongodb_data:
+  rabbitmq_data:
+
+networks:
+  entitiesmanager-network:
+    driver: bridge
