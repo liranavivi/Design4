@@ -6,14 +6,6 @@ namespace EntitiesManager.Core.Entities;
 
 public class ProcessingChainEntity : BaseEntity
 {
-    [BsonElement("address")]
-    [Required(ErrorMessage = "Address is required")]
-    [StringLength(500, ErrorMessage = "Address cannot exceed 500 characters")]
-    public string Address { get; set; } = string.Empty;
-
-    [BsonElement("configuration")]
-    public Dictionary<string, object> Configuration { get; set; } = new();
-
     [BsonElement("version")]
     [Required(ErrorMessage = "Version is required")]
     [StringLength(50, ErrorMessage = "Version cannot exceed 50 characters")]
@@ -24,5 +16,8 @@ public class ProcessingChainEntity : BaseEntity
     [StringLength(200, ErrorMessage = "Name cannot exceed 200 characters")]
     public string Name { get; set; } = string.Empty;
 
-    public override string GetCompositeKey() => $"{Address}_{Version}";
+    [BsonElement("stepIds")]
+    public List<Guid> StepIds { get; set; } = new List<Guid>();
+
+    public override string GetCompositeKey() => string.Empty; // ProcessingChainEntity no longer uses composite keys
 }

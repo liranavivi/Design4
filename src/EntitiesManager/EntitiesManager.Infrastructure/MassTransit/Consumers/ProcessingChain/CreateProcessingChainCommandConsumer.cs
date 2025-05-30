@@ -26,18 +26,17 @@ public class CreateProcessingChainCommandConsumer : IConsumer<CreateProcessingCh
 
     public async Task Consume(ConsumeContext<CreateProcessingChainCommand> context)
     {
-        _logger.LogInformation("Processing CreateProcessingChainCommand for {Address}_{Version}",
-            context.Message.Address, context.Message.Version);
+        _logger.LogInformation("Processing CreateProcessingChainCommand for {Version}_{Name}",
+            context.Message.Version, context.Message.Name);
 
         try
         {
             var entity = new ProcessingChainEntity
             {
-                Address = context.Message.Address,
                 Version = context.Message.Version,
                 Name = context.Message.Name,
                 Description = context.Message.Description,
-                Configuration = context.Message.Configuration ?? new Dictionary<string, object>(),
+                StepIds = context.Message.StepIds ?? new List<Guid>(),
                 CreatedBy = context.Message.RequestedBy
             };
 
@@ -46,19 +45,18 @@ public class CreateProcessingChainCommandConsumer : IConsumer<CreateProcessingCh
             await _publishEndpoint.Publish(new ProcessingChainCreatedEvent
             {
                 Id = created.Id,
-                Address = created.Address,
                 Version = created.Version,
                 Name = created.Name,
                 Description = created.Description,
-                Configuration = created.Configuration,
+                StepIds = created.StepIds,
                 CreatedAt = created.CreatedAt,
                 CreatedBy = created.CreatedBy
             });
 
             await context.RespondAsync(created);
 
-            _logger.LogInformation("Successfully processed CreateProcessingChainCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogInformation("Successfully processed CreateProcessingChainCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
         }
         catch (DuplicateKeyException ex)
         {
@@ -67,8 +65,8 @@ public class CreateProcessingChainCommandConsumer : IConsumer<CreateProcessingCh
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing CreateProcessingChainCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogError(ex, "Error processing CreateProcessingChainCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
             throw;
         }
     }

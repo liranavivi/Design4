@@ -17,40 +17,27 @@ public class ProcessingChainEntityRepository : BaseRepository<ProcessingChainEnt
 
     protected override FilterDefinition<ProcessingChainEntity> CreateCompositeKeyFilter(string compositeKey)
     {
-        var parts = compositeKey.Split('_', 2);
-        if (parts.Length != 2)
-            throw new ArgumentException("Invalid composite key format for ProcessingChainEntity. Expected format: 'address_version'");
-
-        return Builders<ProcessingChainEntity>.Filter.And(
-            Builders<ProcessingChainEntity>.Filter.Eq(x => x.Address, parts[0]),
-            Builders<ProcessingChainEntity>.Filter.Eq(x => x.Version, parts[1])
-        );
+        // ProcessingChainEntity no longer uses composite keys - return empty filter
+        return Builders<ProcessingChainEntity>.Filter.Empty;
     }
 
     protected override void CreateIndexes()
     {
-        // Composite key index for uniqueness
-        var compositeKeyIndex = Builders<ProcessingChainEntity>.IndexKeys
-            .Ascending(x => x.Address)
-            .Ascending(x => x.Version);
-
-        var indexOptions = new CreateIndexOptions { Unique = true };
-        _collection.Indexes.CreateOne(new CreateIndexModel<ProcessingChainEntity>(compositeKeyIndex, indexOptions));
-
-        // Additional indexes for common queries
+        // ProcessingChainEntity no longer uses composite keys - create indexes for new properties
+        // Name index for common queries
         _collection.Indexes.CreateOne(new CreateIndexModel<ProcessingChainEntity>(
             Builders<ProcessingChainEntity>.IndexKeys.Ascending(x => x.Name)));
-        _collection.Indexes.CreateOne(new CreateIndexModel<ProcessingChainEntity>(
-            Builders<ProcessingChainEntity>.IndexKeys.Ascending(x => x.Address)));
+
+        // Version index for version-based queries
         _collection.Indexes.CreateOne(new CreateIndexModel<ProcessingChainEntity>(
             Builders<ProcessingChainEntity>.IndexKeys.Ascending(x => x.Version)));
+
+        // StepIds index for workflow step references
+        _collection.Indexes.CreateOne(new CreateIndexModel<ProcessingChainEntity>(
+            Builders<ProcessingChainEntity>.IndexKeys.Ascending(x => x.StepIds)));
     }
 
-    public async Task<IEnumerable<ProcessingChainEntity>> GetByAddressAsync(string address)
-    {
-        var filter = Builders<ProcessingChainEntity>.Filter.Eq(x => x.Address, address);
-        return await _collection.Find(filter).ToListAsync();
-    }
+    // GetByAddressAsync method removed since ProcessingChainEntity no longer has Address property
 
     public async Task<IEnumerable<ProcessingChainEntity>> GetByVersionAsync(string version)
     {
@@ -64,16 +51,21 @@ public class ProcessingChainEntityRepository : BaseRepository<ProcessingChainEnt
         return await _collection.Find(filter).ToListAsync();
     }
 
+    public async Task<IEnumerable<ProcessingChainEntity>> GetByStepIdAsync(Guid stepId)
+    {
+        var filter = Builders<ProcessingChainEntity>.Filter.AnyEq(x => x.StepIds, stepId);
+        return await _collection.Find(filter).ToListAsync();
+    }
+
     protected override async Task PublishCreatedEventAsync(ProcessingChainEntity entity)
     {
         var createdEvent = new ProcessingChainCreatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            StepIds = entity.StepIds,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy
         };
@@ -85,11 +77,10 @@ public class ProcessingChainEntityRepository : BaseRepository<ProcessingChainEnt
         var updatedEvent = new ProcessingChainUpdatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            StepIds = entity.StepIds,
             UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
         };

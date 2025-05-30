@@ -38,11 +38,10 @@ public class UpdateProcessingChainCommandConsumer : IConsumer<UpdateProcessingCh
             }
 
             // Update properties
-            existing.Address = context.Message.Address;
             existing.Version = context.Message.Version;
             existing.Name = context.Message.Name;
             existing.Description = context.Message.Description;
-            existing.Configuration = context.Message.Configuration ?? new Dictionary<string, object>();
+            existing.StepIds = context.Message.StepIds ?? new List<Guid>();
             existing.UpdatedBy = context.Message.RequestedBy;
 
             var updated = await _repository.UpdateAsync(existing);
@@ -50,11 +49,10 @@ public class UpdateProcessingChainCommandConsumer : IConsumer<UpdateProcessingCh
             await _publishEndpoint.Publish(new ProcessingChainUpdatedEvent
             {
                 Id = updated.Id,
-                Address = updated.Address,
                 Version = updated.Version,
                 Name = updated.Name,
                 Description = updated.Description,
-                Configuration = updated.Configuration,
+                StepIds = updated.StepIds,
                 UpdatedAt = updated.UpdatedAt,
                 UpdatedBy = updated.UpdatedBy
             });

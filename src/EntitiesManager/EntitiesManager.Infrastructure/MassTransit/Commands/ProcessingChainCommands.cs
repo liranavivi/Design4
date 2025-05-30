@@ -2,22 +2,20 @@
 
 public class CreateProcessingChainCommand
 {
-    public string Address { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public Dictionary<string, object> Configuration { get; set; } = new();
+    public List<Guid> StepIds { get; set; } = new List<Guid>();
     public string RequestedBy { get; set; } = string.Empty;
 }
 
 public class UpdateProcessingChainCommand
 {
     public Guid Id { get; set; }
-    public string Address { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public Dictionary<string, object> Configuration { get; set; } = new();
+    public List<Guid> StepIds { get; set; } = new List<Guid>();
     public string RequestedBy { get; set; } = string.Empty;
 }
 
@@ -30,5 +28,5 @@ public class DeleteProcessingChainCommand
 public class GetProcessingChainQuery
 {
     public Guid? Id { get; set; }
-    public string? CompositeKey { get; set; }
+    // CompositeKey removed since ProcessingChainEntity no longer uses composite keys
 }
