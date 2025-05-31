@@ -307,15 +307,18 @@ public class ProtocolsController : ControllerBase
         {
             _logger.LogWarning("Referential integrity violation prevented update of protocol entity. Id: {Id}, Error: {Error}, References: {SourceCount} sources, {DestinationCount} destinations, User: {User}, RequestId: {RequestId}",
                 id, ex.Message, ex.References.SourceEntityCount, ex.References.DestinationEntityCount, userContext, HttpContext.TraceIdentifier);
+
+            var detailedMessage = ex.GetDetailedMessage();
             return Conflict(new
             {
-                error = ex.Message,
+                error = detailedMessage,
                 errorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
                 referencingEntities = new
                 {
                     sourceEntityCount = ex.References.SourceEntityCount,
                     destinationEntityCount = ex.References.DestinationEntityCount,
-                    totalReferences = ex.References.TotalReferences
+                    totalReferences = ex.References.TotalReferences,
+                    entityTypes = ex.References.GetReferencingEntityTypes()
                 }
             });
         }
@@ -365,15 +368,18 @@ public class ProtocolsController : ControllerBase
         {
             _logger.LogWarning("Referential integrity violation prevented deletion of protocol entity. Id: {Id}, Error: {Error}, References: {SourceCount} sources, {DestinationCount} destinations, User: {User}, RequestId: {RequestId}",
                 id, ex.Message, ex.References.SourceEntityCount, ex.References.DestinationEntityCount, userContext, HttpContext.TraceIdentifier);
+
+            var detailedMessage = ex.GetDetailedMessage();
             return Conflict(new
             {
-                error = ex.Message,
+                error = detailedMessage,
                 errorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
                 referencingEntities = new
                 {
                     sourceEntityCount = ex.References.SourceEntityCount,
                     destinationEntityCount = ex.References.DestinationEntityCount,
-                    totalReferences = ex.References.TotalReferences
+                    totalReferences = ex.References.TotalReferences,
+                    entityTypes = ex.References.GetReferencingEntityTypes()
                 }
             });
         }
