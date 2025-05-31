@@ -13,5 +13,5 @@ public class StepEntity : BaseEntity
     [BsonElement("nextStepIds")]
     public List<Guid> NextStepIds { get; set; } = new List<Guid>();
 
-    public override string GetCompositeKey() => string.Empty; // StepEntity no longer uses composite keys
+    public override string GetCompositeKey() => $"{EntityId}"; // Use EntityId as unique identifier
 }

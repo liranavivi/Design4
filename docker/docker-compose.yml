@@ -38,9 +38,10 @@ services:
       - "4318:4318"   # OTLP HTTP receiver
       - "8888:8888"   # Prometheus metrics
       - "8889:8889"   # Prometheus exporter metrics
-
     networks:
       - entitiesmanager-network
+
+  # EntitiesManager API will run locally, not in container
 
 
 

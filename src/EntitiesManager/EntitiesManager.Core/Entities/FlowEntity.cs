@@ -19,5 +19,5 @@ public class FlowEntity : BaseEntity
     [BsonElement("stepIds")]
     public List<Guid> StepIds { get; set; } = new List<Guid>();
 
-    public override string GetCompositeKey() => string.Empty; // FlowEntity no longer uses composite keys
+    public override string GetCompositeKey() => $"{Name}_{Version}"; // Use Name + Version as unique identifier
 }

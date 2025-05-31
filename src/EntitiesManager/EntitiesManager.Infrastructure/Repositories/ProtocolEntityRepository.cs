@@ -23,10 +23,18 @@ public class ProtocolEntityRepository : BaseRepository<ProtocolEntity>, IProtoco
 
     protected override void CreateIndexes()
     {
-        // Name index for uniqueness (since Name is now the composite key)
-        var nameIndex = Builders<ProtocolEntity>.IndexKeys.Ascending(x => x.Name);
-        var indexOptions = new CreateIndexOptions { Unique = true };
-        _collection.Indexes.CreateOne(new CreateIndexModel<ProtocolEntity>(nameIndex, indexOptions));
+        try
+        {
+            // Name index for uniqueness (since Name is now the composite key)
+            var nameIndex = Builders<ProtocolEntity>.IndexKeys.Ascending(x => x.Name);
+            var indexOptions = new CreateIndexOptions { Unique = true, Name = "protocol_name_unique" };
+            _collection.Indexes.CreateOne(new CreateIndexModel<ProtocolEntity>(nameIndex, indexOptions));
+        }
+        catch (MongoCommandException ex) when (ex.Message.Contains("existing index"))
+        {
+            // Index already exists, ignore the error
+            _logger.LogInformation("Index already exists for ProtocolEntity, skipping creation");
+        }
     }
 
     // Note: GetByVersionAsync method removed since ProtocolEntity no longer has Version property

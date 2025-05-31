@@ -27,5 +27,5 @@ public class ScheduledFlowEntity : BaseEntity
     [Required(ErrorMessage = "FlowId is required")]
     public Guid FlowId { get; set; }
 
-    public override string GetCompositeKey() => string.Empty; // ScheduledFlowEntity no longer uses composite keys
+    public override string GetCompositeKey() => $"{Name}_{Version}"; // Use Name + Version as unique identifier
 }
