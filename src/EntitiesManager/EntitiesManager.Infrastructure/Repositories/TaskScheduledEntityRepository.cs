@@ -17,44 +17,41 @@ public class TaskScheduledEntityRepository : BaseRepository<TaskScheduledEntity>
 
     protected override FilterDefinition<TaskScheduledEntity> CreateCompositeKeyFilter(string compositeKey)
     {
-        var parts = compositeKey.Split('_', 2);
-        if (parts.Length != 2)
-            throw new ArgumentException("Invalid composite key format for TaskScheduledEntity. Expected format: 'address_version'");
-
-        return Builders<TaskScheduledEntity>.Filter.And(
-            Builders<TaskScheduledEntity>.Filter.Eq(x => x.Address, parts[0]),
-            Builders<TaskScheduledEntity>.Filter.Eq(x => x.Version, parts[1])
-        );
+        // TaskScheduledEntity now uses Version-only composite key
+        return Builders<TaskScheduledEntity>.Filter.Eq(x => x.Version, compositeKey);
     }
 
     protected override void CreateIndexes()
     {
-        // Composite key index for uniqueness
-        var compositeKeyIndex = Builders<TaskScheduledEntity>.IndexKeys
-            .Ascending(x => x.Address)
-            .Ascending(x => x.Version);
+        try
+        {
+            // Version-only composite key index for uniqueness
+            var versionIndex = Builders<TaskScheduledEntity>.IndexKeys.Ascending(x => x.Version);
+            var indexOptions = new CreateIndexOptions { Unique = true, Name = "version_unique" };
+            _collection.Indexes.CreateOne(new CreateIndexModel<TaskScheduledEntity>(versionIndex, indexOptions));
 
-        var indexOptions = new CreateIndexOptions { Unique = true };
-        _collection.Indexes.CreateOne(new CreateIndexModel<TaskScheduledEntity>(compositeKeyIndex, indexOptions));
-
-        // Additional indexes for common queries
-        _collection.Indexes.CreateOne(new CreateIndexModel<TaskScheduledEntity>(
-            Builders<TaskScheduledEntity>.IndexKeys.Ascending(x => x.Name)));
-        _collection.Indexes.CreateOne(new CreateIndexModel<TaskScheduledEntity>(
-            Builders<TaskScheduledEntity>.IndexKeys.Ascending(x => x.Address)));
-        _collection.Indexes.CreateOne(new CreateIndexModel<TaskScheduledEntity>(
-            Builders<TaskScheduledEntity>.IndexKeys.Ascending(x => x.Version)));
+            // Additional indexes for common queries
+            _collection.Indexes.CreateOne(new CreateIndexModel<TaskScheduledEntity>(
+                Builders<TaskScheduledEntity>.IndexKeys.Ascending(x => x.Name)));
+            _collection.Indexes.CreateOne(new CreateIndexModel<TaskScheduledEntity>(
+                Builders<TaskScheduledEntity>.IndexKeys.Ascending(x => x.ScheduledFlowId)));
+        }
+        catch (MongoCommandException ex) when (ex.Message.Contains("existing index"))
+        {
+            // Index already exists, ignore the error
+            _logger.LogInformation("Index already exists for TaskScheduledEntity, skipping creation");
+        }
     }
 
-    public async Task<IEnumerable<TaskScheduledEntity>> GetByAddressAsync(string address)
-    {
-        var filter = Builders<TaskScheduledEntity>.Filter.Eq(x => x.Address, address);
-        return await _collection.Find(filter).ToListAsync();
-    }
-
-    public async Task<IEnumerable<TaskScheduledEntity>> GetByVersionAsync(string version)
+    public async Task<TaskScheduledEntity?> GetByVersionAsync(string version)
     {
         var filter = Builders<TaskScheduledEntity>.Filter.Eq(x => x.Version, version);
+        return await _collection.Find(filter).FirstOrDefaultAsync();
+    }
+
+    public async Task<IEnumerable<TaskScheduledEntity>> GetByScheduledFlowIdAsync(Guid scheduledFlowId)
+    {
+        var filter = Builders<TaskScheduledEntity>.Filter.Eq(x => x.ScheduledFlowId, scheduledFlowId);
         return await _collection.Find(filter).ToListAsync();
     }
 
@@ -69,11 +66,10 @@ public class TaskScheduledEntityRepository : BaseRepository<TaskScheduledEntity>
         var createdEvent = new TaskScheduledCreatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            ScheduledFlowId = entity.ScheduledFlowId,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy
         };
@@ -85,11 +81,10 @@ public class TaskScheduledEntityRepository : BaseRepository<TaskScheduledEntity>
         var updatedEvent = new TaskScheduledUpdatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            ScheduledFlowId = entity.ScheduledFlowId,
             UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
         };

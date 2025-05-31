@@ -5,7 +5,7 @@ namespace EntitiesManager.Core.Interfaces.Repositories;
 
 public interface ITaskScheduledEntityRepository : IBaseRepository<TaskScheduledEntity>
 {
-    Task<IEnumerable<TaskScheduledEntity>> GetByAddressAsync(string address);
-    Task<IEnumerable<TaskScheduledEntity>> GetByVersionAsync(string version);
+    Task<TaskScheduledEntity?> GetByVersionAsync(string version);
+    Task<IEnumerable<TaskScheduledEntity>> GetByScheduledFlowIdAsync(Guid scheduledFlowId);
     Task<IEnumerable<TaskScheduledEntity>> GetByNameAsync(string name);
 }

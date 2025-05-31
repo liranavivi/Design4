@@ -116,8 +116,8 @@ public class TaskScheduledsController : ControllerBase
                 return NotFound($"TaskScheduled with ID {id} not found");
             }
 
-            _logger.LogInformation("Successfully retrieved taskscheduled entity by ID. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, User: {User}, RequestId: {RequestId}",
-                id, entity.Address, entity.Version, entity.Name, userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved taskscheduled entity by ID. Id: {Id}, Version: {Version}, Name: {Name}, ScheduledFlowId: {ScheduledFlowId}, User: {User}, RequestId: {RequestId}",
+                id, entity.Version, entity.Name, entity.ScheduledFlowId, userContext, HttpContext.TraceIdentifier);
 
             return Ok(entity);
         }
@@ -129,60 +129,59 @@ public class TaskScheduledsController : ControllerBase
         }
     }
 
-    [HttpGet("by-key/{address}/{version}")]
-    public async Task<ActionResult<TaskScheduledEntity>> GetByCompositeKey(string address, string version)
+    [HttpGet("by-version/{version}")]
+    public async Task<ActionResult<TaskScheduledEntity>> GetByVersion(string version)
     {
         var userContext = User.Identity?.Name ?? "Anonymous";
-        var compositeKey = $"{address}_{version}";
 
-        _logger.LogInformation("Starting GetByCompositeKey taskscheduled request. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting GetByVersion taskscheduled request. Version: {Version}, User: {User}, RequestId: {RequestId}",
+            version, userContext, HttpContext.TraceIdentifier);
 
         try
         {
-            var entity = await _repository.GetByCompositeKeyAsync(compositeKey);
+            var entity = await _repository.GetByVersionAsync(version);
 
             if (entity == null)
             {
-                _logger.LogWarning("TaskScheduled entity not found by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                    address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
-                return NotFound($"TaskScheduled with address '{address}' and version '{version}' not found");
+                _logger.LogWarning("TaskScheduled entity not found by version. Version: {Version}, User: {User}, RequestId: {RequestId}",
+                    version, userContext, HttpContext.TraceIdentifier);
+                return NotFound($"TaskScheduled with version '{version}' not found");
             }
 
-            _logger.LogInformation("Successfully retrieved taskscheduled entity by composite key. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity.Id, address, version, entity.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved taskscheduled entity by version. Id: {Id}, Version: {Version}, Name: {Name}, ScheduledFlowId: {ScheduledFlowId}, User: {User}, RequestId: {RequestId}",
+                entity.Id, entity.Version, entity.Name, entity.ScheduledFlowId, userContext, HttpContext.TraceIdentifier);
 
             return Ok(entity);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving taskscheduled entity by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error retrieving taskscheduled entity by version. Version: {Version}, User: {User}, RequestId: {RequestId}",
+                version, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while retrieving the taskscheduled entity");
         }
     }
 
-    [HttpGet("by-address/{address}")]
-    public async Task<ActionResult<IEnumerable<TaskScheduledEntity>>> GetByAddress(string address)
+    [HttpGet("by-scheduled-flow-id/{scheduledFlowId:guid}")]
+    public async Task<ActionResult<IEnumerable<TaskScheduledEntity>>> GetByScheduledFlowId(Guid scheduledFlowId)
     {
         var userContext = User.Identity?.Name ?? "Anonymous";
 
-        _logger.LogInformation("Starting GetByAddress taskscheduled request. Address: {Address}, User: {User}, RequestId: {RequestId}",
-            address, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting GetByScheduledFlowId taskscheduled request. ScheduledFlowId: {ScheduledFlowId}, User: {User}, RequestId: {RequestId}",
+            scheduledFlowId, userContext, HttpContext.TraceIdentifier);
 
         try
         {
-            var entities = await _repository.GetByAddressAsync(address);
+            var entities = await _repository.GetByScheduledFlowIdAsync(scheduledFlowId);
 
-            _logger.LogInformation("Successfully retrieved taskscheduled entities by address. Address: {Address}, Count: {Count}, User: {User}, RequestId: {RequestId}",
-                address, entities.Count(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved taskscheduled entities by scheduled flow ID. ScheduledFlowId: {ScheduledFlowId}, Count: {Count}, User: {User}, RequestId: {RequestId}",
+                scheduledFlowId, entities.Count(), userContext, HttpContext.TraceIdentifier);
 
             return Ok(entities);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving taskscheduled entities by address. Address: {Address}, User: {User}, RequestId: {RequestId}",
-                address, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error retrieving taskscheduled entities by scheduled flow ID. ScheduledFlowId: {ScheduledFlowId}, User: {User}, RequestId: {RequestId}",
+                scheduledFlowId, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while retrieving taskscheduled entities");
         }
     }
@@ -212,30 +211,7 @@ public class TaskScheduledsController : ControllerBase
         }
     }
 
-    [HttpGet("by-version/{version}")]
-    public async Task<ActionResult<IEnumerable<TaskScheduledEntity>>> GetByVersion(string version)
-    {
-        var userContext = User.Identity?.Name ?? "Anonymous";
 
-        _logger.LogInformation("Starting GetByVersion taskscheduled request. Version: {Version}, User: {User}, RequestId: {RequestId}",
-            version, userContext, HttpContext.TraceIdentifier);
-
-        try
-        {
-            var entities = await _repository.GetByVersionAsync(version);
-
-            _logger.LogInformation("Successfully retrieved taskscheduled entities by version. Version: {Version}, Count: {Count}, User: {User}, RequestId: {RequestId}",
-                version, entities.Count(), userContext, HttpContext.TraceIdentifier);
-
-            return Ok(entities);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving taskscheduled entities by version. Version: {Version}, User: {User}, RequestId: {RequestId}",
-                version, userContext, HttpContext.TraceIdentifier);
-            return StatusCode(500, "An error occurred while retrieving taskscheduled entities");
-        }
-    }
 
     [HttpPost]
     public async Task<ActionResult<TaskScheduledEntity>> Create([FromBody] TaskScheduledEntity entity)
@@ -243,8 +219,8 @@ public class TaskScheduledsController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Create taskscheduled request. Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Create taskscheduled request. Version: {Version}, Name: {Name}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            entity?.Version, entity?.Name, entity?.ScheduledFlowId, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -258,33 +234,33 @@ public class TaskScheduledsController : ControllerBase
             entity!.CreatedBy = userContext;
             entity.Id = Guid.Empty;
 
-            _logger.LogDebug("Creating taskscheduled entity with details. Address: {Address}, Version: {Version}, Name: {Name}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
-                entity.Address, entity.Version, entity.Name, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Creating taskscheduled entity with details. Version: {Version}, Name: {Name}, ScheduledFlowId: {ScheduledFlowId}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
+                entity.Version, entity.Name, entity.ScheduledFlowId, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
 
             var created = await _repository.CreateAsync(entity);
 
             if (created.Id == Guid.Empty)
             {
-                _logger.LogError("MongoDB failed to generate ID for new TaskScheduledEntity. Address: {Address}, Version: {Version}, User: {User}, RequestId: {RequestId}",
-                    entity.Address, entity.Version, userContext, HttpContext.TraceIdentifier);
+                _logger.LogError("MongoDB failed to generate ID for new TaskScheduledEntity. Version: {Version}, ScheduledFlowId: {ScheduledFlowId}, User: {User}, RequestId: {RequestId}",
+                    entity.Version, entity.ScheduledFlowId, userContext, HttpContext.TraceIdentifier);
                 return StatusCode(500, "Failed to generate entity ID");
             }
 
-            _logger.LogInformation("Successfully created taskscheduled entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                created.Id, created.Address, created.Version, created.Name, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully created taskscheduled entity. Id: {Id}, Version: {Version}, Name: {Name}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                created.Id, created.Version, created.Name, created.ScheduledFlowId, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict creating taskscheduled entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict creating taskscheduled entity. Version: {Version}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.Version, entity?.ScheduledFlowId, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating taskscheduled entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error creating taskscheduled entity. Version: {Version}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.Version, entity?.ScheduledFlowId, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while creating the taskscheduled");
         }
     }
@@ -295,8 +271,8 @@ public class TaskScheduledsController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Update taskscheduled request. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            id, entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Update taskscheduled request. Id: {Id}, Version: {Version}, Name: {Name}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            id, entity?.Version, entity?.Name, entity?.ScheduledFlowId, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -322,8 +298,8 @@ public class TaskScheduledsController : ControllerBase
                 return NotFound($"TaskScheduled with ID {id} not found");
             }
 
-            _logger.LogDebug("Updating taskscheduled entity. Id: {Id}, OldAddress: {OldAddress}, NewAddress: {NewAddress}, OldVersion: {OldVersion}, NewVersion: {NewVersion}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, entity.Address, existing.Version, entity.Version, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Updating taskscheduled entity. Id: {Id}, OldVersion: {OldVersion}, NewVersion: {NewVersion}, OldScheduledFlowId: {OldScheduledFlowId}, NewScheduledFlowId: {NewScheduledFlowId}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, entity.Version, existing.ScheduledFlowId, entity.ScheduledFlowId, userContext, HttpContext.TraceIdentifier);
 
             // Preserve audit fields
             entity.CreatedAt = existing.CreatedAt;
@@ -332,15 +308,15 @@ public class TaskScheduledsController : ControllerBase
 
             var updated = await _repository.UpdateAsync(entity);
 
-            _logger.LogInformation("Successfully updated taskscheduled entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                updated.Id, updated.Address, updated.Version, updated.Name, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully updated taskscheduled entity. Id: {Id}, Version: {Version}, Name: {Name}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                updated.Id, updated.Version, updated.Name, updated.ScheduledFlowId, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return Ok(updated);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict updating taskscheduled entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict updating taskscheduled entity. Id: {Id}, Version: {Version}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.Version, entity?.ScheduledFlowId, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (EntityNotFoundException)
@@ -351,8 +327,8 @@ public class TaskScheduledsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating taskscheduled entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error updating taskscheduled entity. Id: {Id}, Version: {Version}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.Version, entity?.ScheduledFlowId, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while updating the taskscheduled");
         }
     }
@@ -375,8 +351,8 @@ public class TaskScheduledsController : ControllerBase
                 return NotFound($"TaskScheduled with ID {id} not found");
             }
 
-            _logger.LogDebug("Deleting taskscheduled entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Deleting taskscheduled entity. Id: {Id}, Version: {Version}, Name: {Name}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, existing.Name, existing.ScheduledFlowId, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             var deleted = await _repository.DeleteAsync(id);
             if (!deleted)
@@ -386,8 +362,8 @@ public class TaskScheduledsController : ControllerBase
                 return StatusCode(500, "Failed to delete the taskscheduled entity");
             }
 
-            _logger.LogInformation("Successfully deleted taskscheduled entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully deleted taskscheduled entity. Id: {Id}, Version: {Version}, Name: {Name}, ScheduledFlowId: {ScheduledFlowId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, existing.Name, existing.ScheduledFlowId, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
         }

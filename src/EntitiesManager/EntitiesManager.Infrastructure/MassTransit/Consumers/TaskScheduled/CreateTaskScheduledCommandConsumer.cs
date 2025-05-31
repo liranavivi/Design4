@@ -26,18 +26,17 @@ public class CreateTaskScheduledCommandConsumer : IConsumer<CreateTaskScheduledC
 
     public async Task Consume(ConsumeContext<CreateTaskScheduledCommand> context)
     {
-        _logger.LogInformation("Processing CreateTaskScheduledCommand for {Address}_{Version}",
-            context.Message.Address, context.Message.Version);
+        _logger.LogInformation("Processing CreateTaskScheduledCommand for Version: {Version}, ScheduledFlowId: {ScheduledFlowId}",
+            context.Message.Version, context.Message.ScheduledFlowId);
 
         try
         {
             var entity = new TaskScheduledEntity
             {
-                Address = context.Message.Address,
                 Version = context.Message.Version,
                 Name = context.Message.Name,
                 Description = context.Message.Description,
-                Configuration = context.Message.Configuration ?? new Dictionary<string, object>(),
+                ScheduledFlowId = context.Message.ScheduledFlowId,
                 CreatedBy = context.Message.RequestedBy
             };
 
@@ -46,19 +45,18 @@ public class CreateTaskScheduledCommandConsumer : IConsumer<CreateTaskScheduledC
             await _publishEndpoint.Publish(new TaskScheduledCreatedEvent
             {
                 Id = created.Id,
-                Address = created.Address,
                 Version = created.Version,
                 Name = created.Name,
                 Description = created.Description,
-                Configuration = created.Configuration,
+                ScheduledFlowId = created.ScheduledFlowId,
                 CreatedAt = created.CreatedAt,
                 CreatedBy = created.CreatedBy
             });
 
             await context.RespondAsync(created);
 
-            _logger.LogInformation("Successfully processed CreateTaskScheduledCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogInformation("Successfully processed CreateTaskScheduledCommand for Version: {Version}, ScheduledFlowId: {ScheduledFlowId}",
+                context.Message.Version, context.Message.ScheduledFlowId);
         }
         catch (DuplicateKeyException ex)
         {
@@ -67,8 +65,8 @@ public class CreateTaskScheduledCommandConsumer : IConsumer<CreateTaskScheduledC
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing CreateTaskScheduledCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogError(ex, "Error processing CreateTaskScheduledCommand for Version: {Version}, ScheduledFlowId: {ScheduledFlowId}",
+                context.Message.Version, context.Message.ScheduledFlowId);
             throw;
         }
     }
