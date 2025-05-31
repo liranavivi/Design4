@@ -33,11 +33,21 @@ public static class MongoDbConfiguration
         // Register event publisher
         services.AddScoped<IEventPublisher, EventPublisher>();
 
+        // Register referential integrity service
+        services.AddScoped<IReferentialIntegrityService, ReferentialIntegrityService>();
+
         // Register repositories
         services.AddScoped<ISourceEntityRepository, SourceEntityRepository>();
         services.AddScoped<IStepEntityRepository, StepEntityRepository>();
         services.AddScoped<IDestinationEntityRepository, DestinationEntityRepository>();
-        services.AddScoped<IProtocolEntityRepository, ProtocolEntityRepository>();
+        services.AddScoped<IProtocolEntityRepository>(provider =>
+        {
+            var database = provider.GetRequiredService<IMongoDatabase>();
+            var logger = provider.GetRequiredService<ILogger<ProtocolEntityRepository>>();
+            var eventPublisher = provider.GetRequiredService<IEventPublisher>();
+            var integrityService = provider.GetRequiredService<IReferentialIntegrityService>();
+            return new ProtocolEntityRepository(database, logger, eventPublisher, integrityService);
+        });
         services.AddScoped<IImporterEntityRepository, ImporterEntityRepository>();
         services.AddScoped<IExporterEntityRepository, ExporterEntityRepository>();
         services.AddScoped<IProcessorEntityRepository, ProcessorEntityRepository>();

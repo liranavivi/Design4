@@ -303,6 +303,22 @@ public class ProtocolsController : ControllerBase
                 id, userContext, HttpContext.TraceIdentifier);
             return NotFound($"Protocol with ID {id} not found");
         }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented update of protocol entity. Id: {Id}, Error: {Error}, References: {SourceCount} sources, {DestinationCount} destinations, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, ex.References.SourceEntityCount, ex.References.DestinationEntityCount, userContext, HttpContext.TraceIdentifier);
+            return Conflict(new
+            {
+                error = ex.Message,
+                errorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
+                referencingEntities = new
+                {
+                    sourceEntityCount = ex.References.SourceEntityCount,
+                    destinationEntityCount = ex.References.DestinationEntityCount,
+                    totalReferences = ex.References.TotalReferences
+                }
+            });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating protocol entity. Id: {Id}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
@@ -344,6 +360,22 @@ public class ProtocolsController : ControllerBase
                 id, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
+        }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented deletion of protocol entity. Id: {Id}, Error: {Error}, References: {SourceCount} sources, {DestinationCount} destinations, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, ex.References.SourceEntityCount, ex.References.DestinationEntityCount, userContext, HttpContext.TraceIdentifier);
+            return Conflict(new
+            {
+                error = ex.Message,
+                errorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
+                referencingEntities = new
+                {
+                    sourceEntityCount = ex.References.SourceEntityCount,
+                    destinationEntityCount = ex.References.DestinationEntityCount,
+                    totalReferences = ex.References.TotalReferences
+                }
+            });
         }
         catch (Exception ex)
         {

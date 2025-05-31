@@ -1,6 +1,7 @@
 ﻿using EntitiesManager.Core.Entities;
 using EntitiesManager.Core.Interfaces.Repositories;
 using EntitiesManager.Core.Interfaces.Services;
+using EntitiesManager.Core.Exceptions;
 using EntitiesManager.Infrastructure.MassTransit.Events;
 using EntitiesManager.Infrastructure.Repositories.Base;
 using Microsoft.Extensions.Logging;
@@ -10,9 +11,17 @@ namespace EntitiesManager.Infrastructure.Repositories;
 
 public class ProtocolEntityRepository : BaseRepository<ProtocolEntity>, IProtocolEntityRepository
 {
+    private readonly IReferentialIntegrityService? _integrityService;
+
     public ProtocolEntityRepository(IMongoDatabase database, ILogger<ProtocolEntityRepository> logger, IEventPublisher eventPublisher)
         : base(database, "protocols", logger, eventPublisher)
     {
+    }
+
+    public ProtocolEntityRepository(IMongoDatabase database, ILogger<ProtocolEntityRepository> logger, IEventPublisher eventPublisher, IReferentialIntegrityService integrityService)
+        : base(database, "protocols", logger, eventPublisher)
+    {
+        _integrityService = integrityService;
     }
 
     protected override FilterDefinition<ProtocolEntity> CreateCompositeKeyFilter(string compositeKey)
@@ -83,5 +92,63 @@ public class ProtocolEntityRepository : BaseRepository<ProtocolEntity>, IProtoco
             DeletedBy = deletedBy
         };
         await _eventPublisher.PublishAsync(deletedEvent);
+    }
+
+    public override async Task<bool> DeleteAsync(Guid id)
+    {
+        if (_integrityService != null)
+        {
+            _logger.LogInformation("Validating referential integrity before deleting ProtocolEntity {Id}", id);
+
+            try
+            {
+                var validationResult = await _integrityService.ValidateProtocolDeletionAsync(id);
+
+                if (!validationResult.IsValid)
+                {
+                    _logger.LogWarning("Referential integrity violation prevented deletion of ProtocolEntity {Id}: {Error}. References: {SourceCount} sources, {DestinationCount} destinations",
+                        id, validationResult.ErrorMessage, validationResult.References.SourceEntityCount, validationResult.References.DestinationEntityCount);
+                    throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.References);
+                }
+
+                _logger.LogInformation("Referential integrity validation passed for ProtocolEntity {Id}. Proceeding with deletion", id);
+            }
+            catch (ReferentialIntegrityException)
+            {
+                throw; // Re-throw referential integrity exceptions
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during referential integrity validation for ProtocolEntity {Id}", id);
+                throw;
+            }
+        }
+
+        return await base.DeleteAsync(id);
+    }
+
+    public override async Task<ProtocolEntity> UpdateAsync(ProtocolEntity entity)
+    {
+        if (_integrityService != null)
+        {
+            // Check if ID is changing (rare but possible in some scenarios)
+            var existing = await GetByIdAsync(entity.Id);
+            if (existing != null && existing.Id != entity.Id)
+            {
+                _logger.LogInformation("Validating referential integrity for ProtocolEntity ID change from {OldId} to {NewId}",
+                    existing.Id, entity.Id);
+
+                var validationResult = await _integrityService.ValidateProtocolUpdateAsync(existing.Id, entity.Id);
+
+                if (!validationResult.IsValid)
+                {
+                    _logger.LogWarning("Referential integrity violation prevented update of ProtocolEntity {Id}: {Error}",
+                        existing.Id, validationResult.ErrorMessage);
+                    throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.References);
+                }
+            }
+        }
+
+        return await base.UpdateAsync(entity);
     }
 }
