@@ -17,40 +17,35 @@ public class ScheduledFlowEntityRepository : BaseRepository<ScheduledFlowEntity>
 
     protected override FilterDefinition<ScheduledFlowEntity> CreateCompositeKeyFilter(string compositeKey)
     {
-        var parts = compositeKey.Split('_', 2);
-        if (parts.Length != 2)
-            throw new ArgumentException("Invalid composite key format for ScheduledFlowEntity. Expected format: 'address_version'");
-
-        return Builders<ScheduledFlowEntity>.Filter.And(
-            Builders<ScheduledFlowEntity>.Filter.Eq(x => x.Address, parts[0]),
-            Builders<ScheduledFlowEntity>.Filter.Eq(x => x.Version, parts[1])
-        );
+        // ScheduledFlowEntity no longer uses composite keys - return empty filter
+        return Builders<ScheduledFlowEntity>.Filter.Empty;
     }
 
     protected override void CreateIndexes()
     {
-        // Composite key index for uniqueness
-        var compositeKeyIndex = Builders<ScheduledFlowEntity>.IndexKeys
-            .Ascending(x => x.Address)
-            .Ascending(x => x.Version);
-
-        var indexOptions = new CreateIndexOptions { Unique = true };
-        _collection.Indexes.CreateOne(new CreateIndexModel<ScheduledFlowEntity>(compositeKeyIndex, indexOptions));
-
-        // Additional indexes for common queries
+        // ScheduledFlowEntity no longer uses composite keys - create indexes for new properties
+        // Name index for common queries
         _collection.Indexes.CreateOne(new CreateIndexModel<ScheduledFlowEntity>(
             Builders<ScheduledFlowEntity>.IndexKeys.Ascending(x => x.Name)));
-        _collection.Indexes.CreateOne(new CreateIndexModel<ScheduledFlowEntity>(
-            Builders<ScheduledFlowEntity>.IndexKeys.Ascending(x => x.Address)));
+
+        // Version index for version-based queries
         _collection.Indexes.CreateOne(new CreateIndexModel<ScheduledFlowEntity>(
             Builders<ScheduledFlowEntity>.IndexKeys.Ascending(x => x.Version)));
+
+        // SourceId index for scheduled flow source references
+        _collection.Indexes.CreateOne(new CreateIndexModel<ScheduledFlowEntity>(
+            Builders<ScheduledFlowEntity>.IndexKeys.Ascending(x => x.SourceId)));
+
+        // DestinationIds index for scheduled flow destination references
+        _collection.Indexes.CreateOne(new CreateIndexModel<ScheduledFlowEntity>(
+            Builders<ScheduledFlowEntity>.IndexKeys.Ascending(x => x.DestinationIds)));
+
+        // FlowId index for flow references
+        _collection.Indexes.CreateOne(new CreateIndexModel<ScheduledFlowEntity>(
+            Builders<ScheduledFlowEntity>.IndexKeys.Ascending(x => x.FlowId)));
     }
 
-    public async Task<IEnumerable<ScheduledFlowEntity>> GetByAddressAsync(string address)
-    {
-        var filter = Builders<ScheduledFlowEntity>.Filter.Eq(x => x.Address, address);
-        return await _collection.Find(filter).ToListAsync();
-    }
+    // GetByAddressAsync method removed since ScheduledFlowEntity no longer has Address property
 
     public async Task<IEnumerable<ScheduledFlowEntity>> GetByVersionAsync(string version)
     {
@@ -64,16 +59,35 @@ public class ScheduledFlowEntityRepository : BaseRepository<ScheduledFlowEntity>
         return await _collection.Find(filter).ToListAsync();
     }
 
+    public async Task<IEnumerable<ScheduledFlowEntity>> GetBySourceIdAsync(Guid sourceId)
+    {
+        var filter = Builders<ScheduledFlowEntity>.Filter.Eq(x => x.SourceId, sourceId);
+        return await _collection.Find(filter).ToListAsync();
+    }
+
+    public async Task<IEnumerable<ScheduledFlowEntity>> GetByDestinationIdAsync(Guid destinationId)
+    {
+        var filter = Builders<ScheduledFlowEntity>.Filter.AnyEq(x => x.DestinationIds, destinationId);
+        return await _collection.Find(filter).ToListAsync();
+    }
+
+    public async Task<IEnumerable<ScheduledFlowEntity>> GetByFlowIdAsync(Guid flowId)
+    {
+        var filter = Builders<ScheduledFlowEntity>.Filter.Eq(x => x.FlowId, flowId);
+        return await _collection.Find(filter).ToListAsync();
+    }
+
     protected override async Task PublishCreatedEventAsync(ScheduledFlowEntity entity)
     {
         var createdEvent = new ScheduledFlowCreatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            SourceId = entity.SourceId,
+            DestinationIds = entity.DestinationIds,
+            FlowId = entity.FlowId,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy
         };
@@ -85,11 +99,12 @@ public class ScheduledFlowEntityRepository : BaseRepository<ScheduledFlowEntity>
         var updatedEvent = new ScheduledFlowUpdatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            SourceId = entity.SourceId,
+            DestinationIds = entity.DestinationIds,
+            FlowId = entity.FlowId,
             UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
         };

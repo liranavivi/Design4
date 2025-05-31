@@ -34,20 +34,9 @@ public class GetScheduledFlowQueryConsumer : IConsumer<GetScheduledFlowQuery>
                 else
                     await context.RespondAsync(new { Error = "ScheduledFlow not found", Type = "NotFound" });
             }
-            else if (!string.IsNullOrEmpty(context.Message.CompositeKey))
-            {
-                activity?.SetTag("query.type", "ByCompositeKey");
-                activity?.SetTag("query.compositeKey", context.Message.CompositeKey);
-
-                var entity = await _repository.GetByCompositeKeyAsync(context.Message.CompositeKey);
-                if (entity != null)
-                    await context.RespondAsync(entity);
-                else
-                    await context.RespondAsync(new { Error = "ScheduledFlow not found", Type = "NotFound" });
-            }
             else
             {
-                await context.RespondAsync(new { Error = "Either Id or CompositeKey must be provided", Type = "BadRequest" });
+                await context.RespondAsync(new { Error = "Id must be provided", Type = "BadRequest" });
             }
 
             _logger.LogInformation("Successfully processed GetScheduledFlowQuery");

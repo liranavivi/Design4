@@ -3,11 +3,12 @@
 public class ScheduledFlowCreatedEvent
 {
     public Guid Id { get; set; }
-    public string Address { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public Dictionary<string, object> Configuration { get; set; } = new();
+    public Guid SourceId { get; set; }
+    public List<Guid> DestinationIds { get; set; } = new List<Guid>();
+    public Guid FlowId { get; set; }
     public DateTime CreatedAt { get; set; }
     public string CreatedBy { get; set; } = string.Empty;
 }
@@ -15,11 +16,12 @@ public class ScheduledFlowCreatedEvent
 public class ScheduledFlowUpdatedEvent
 {
     public Guid Id { get; set; }
-    public string Address { get; set; } = string.Empty;
     public string Version { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public Dictionary<string, object> Configuration { get; set; } = new();
+    public Guid SourceId { get; set; }
+    public List<Guid> DestinationIds { get; set; } = new List<Guid>();
+    public Guid FlowId { get; set; }
     public DateTime UpdatedAt { get; set; }
     public string UpdatedBy { get; set; } = string.Empty;
 }

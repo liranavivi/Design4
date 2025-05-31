@@ -26,18 +26,19 @@ public class CreateScheduledFlowCommandConsumer : IConsumer<CreateScheduledFlowC
 
     public async Task Consume(ConsumeContext<CreateScheduledFlowCommand> context)
     {
-        _logger.LogInformation("Processing CreateScheduledFlowCommand for {Address}_{Version}",
-            context.Message.Address, context.Message.Version);
+        _logger.LogInformation("Processing CreateScheduledFlowCommand for {Version}_{Name}",
+            context.Message.Version, context.Message.Name);
 
         try
         {
             var entity = new ScheduledFlowEntity
             {
-                Address = context.Message.Address,
                 Version = context.Message.Version,
                 Name = context.Message.Name,
                 Description = context.Message.Description,
-                Configuration = context.Message.Configuration ?? new Dictionary<string, object>(),
+                SourceId = context.Message.SourceId,
+                DestinationIds = context.Message.DestinationIds ?? new List<Guid>(),
+                FlowId = context.Message.FlowId,
                 CreatedBy = context.Message.RequestedBy
             };
 
@@ -46,19 +47,20 @@ public class CreateScheduledFlowCommandConsumer : IConsumer<CreateScheduledFlowC
             await _publishEndpoint.Publish(new ScheduledFlowCreatedEvent
             {
                 Id = created.Id,
-                Address = created.Address,
                 Version = created.Version,
                 Name = created.Name,
                 Description = created.Description,
-                Configuration = created.Configuration,
+                SourceId = created.SourceId,
+                DestinationIds = created.DestinationIds,
+                FlowId = created.FlowId,
                 CreatedAt = created.CreatedAt,
                 CreatedBy = created.CreatedBy
             });
 
             await context.RespondAsync(created);
 
-            _logger.LogInformation("Successfully processed CreateScheduledFlowCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogInformation("Successfully processed CreateScheduledFlowCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
         }
         catch (DuplicateKeyException ex)
         {
@@ -67,8 +69,8 @@ public class CreateScheduledFlowCommandConsumer : IConsumer<CreateScheduledFlowC
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing CreateScheduledFlowCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogError(ex, "Error processing CreateScheduledFlowCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
             throw;
         }
     }

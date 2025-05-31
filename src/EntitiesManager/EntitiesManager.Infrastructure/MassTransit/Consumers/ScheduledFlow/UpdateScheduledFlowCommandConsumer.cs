@@ -38,11 +38,12 @@ public class UpdateScheduledFlowCommandConsumer : IConsumer<UpdateScheduledFlowC
             }
 
             // Update properties
-            existing.Address = context.Message.Address;
             existing.Version = context.Message.Version;
             existing.Name = context.Message.Name;
             existing.Description = context.Message.Description;
-            existing.Configuration = context.Message.Configuration ?? new Dictionary<string, object>();
+            existing.SourceId = context.Message.SourceId;
+            existing.DestinationIds = context.Message.DestinationIds ?? new List<Guid>();
+            existing.FlowId = context.Message.FlowId;
             existing.UpdatedBy = context.Message.RequestedBy;
 
             var updated = await _repository.UpdateAsync(existing);
@@ -50,11 +51,12 @@ public class UpdateScheduledFlowCommandConsumer : IConsumer<UpdateScheduledFlowC
             await _publishEndpoint.Publish(new ScheduledFlowUpdatedEvent
             {
                 Id = updated.Id,
-                Address = updated.Address,
                 Version = updated.Version,
                 Name = updated.Name,
                 Description = updated.Description,
-                Configuration = updated.Configuration,
+                SourceId = updated.SourceId,
+                DestinationIds = updated.DestinationIds,
+                FlowId = updated.FlowId,
                 UpdatedAt = updated.UpdatedAt,
                 UpdatedBy = updated.UpdatedBy
             });
