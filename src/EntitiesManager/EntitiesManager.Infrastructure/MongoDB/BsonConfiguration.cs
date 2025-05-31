@@ -192,15 +192,6 @@ public static class BsonConfiguration
             });
         }
 
-        if (!BsonClassMap.IsClassMapRegistered(typeof(ProcessingChainEntity)))
-        {
-            BsonClassMap.RegisterClassMap<ProcessingChainEntity>(cm =>
-            {
-                cm.AutoMap();
-                cm.SetIgnoreExtraElements(true);
-            });
-        }
-
         if (!BsonClassMap.IsClassMapRegistered(typeof(FlowEntity)))
         {
             BsonClassMap.RegisterClassMap<FlowEntity>(cm =>

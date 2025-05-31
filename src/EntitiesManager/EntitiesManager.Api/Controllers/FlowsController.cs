@@ -116,8 +116,8 @@ public class FlowsController : ControllerBase
                 return NotFound($"Flow with ID {id} not found");
             }
 
-            _logger.LogInformation("Successfully retrieved flow entity by ID. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, User: {User}, RequestId: {RequestId}",
-                id, entity.Address, entity.Version, entity.Name, userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved flow entity by ID. Id: {Id}, Version: {Version}, Name: {Name}, User: {User}, RequestId: {RequestId}",
+                id, entity.Version, entity.Name, userContext, HttpContext.TraceIdentifier);
 
             return Ok(entity);
         }
@@ -129,60 +129,31 @@ public class FlowsController : ControllerBase
         }
     }
 
-    [HttpGet("by-key/{address}/{version}")]
-    public async Task<ActionResult<FlowEntity>> GetByCompositeKey(string address, string version)
-    {
-        var userContext = User.Identity?.Name ?? "Anonymous";
-        var compositeKey = $"{address}_{version}";
+    // GetByCompositeKey method removed since FlowEntity no longer uses composite keys
 
-        _logger.LogInformation("Starting GetByCompositeKey flow request. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
+    // GetByAddress method removed since FlowEntity no longer has Address property
 
-        try
-        {
-            var entity = await _repository.GetByCompositeKeyAsync(compositeKey);
-
-            if (entity == null)
-            {
-                _logger.LogWarning("Flow entity not found by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                    address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
-                return NotFound($"Flow with address '{address}' and version '{version}' not found");
-            }
-
-            _logger.LogInformation("Successfully retrieved flow entity by composite key. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity.Id, address, version, entity.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
-
-            return Ok(entity);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving flow entity by composite key. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                address, version, compositeKey, userContext, HttpContext.TraceIdentifier);
-            return StatusCode(500, "An error occurred while retrieving the flow entity");
-        }
-    }
-
-    [HttpGet("by-address/{address}")]
-    public async Task<ActionResult<IEnumerable<FlowEntity>>> GetByAddress(string address)
+    [HttpGet("by-step-id/{stepId:guid}")]
+    public async Task<ActionResult<IEnumerable<FlowEntity>>> GetByStepId(Guid stepId)
     {
         var userContext = User.Identity?.Name ?? "Anonymous";
 
-        _logger.LogInformation("Starting GetByAddress flow request. Address: {Address}, User: {User}, RequestId: {RequestId}",
-            address, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting GetByStepId flow request. StepId: {StepId}, User: {User}, RequestId: {RequestId}",
+            stepId, userContext, HttpContext.TraceIdentifier);
 
         try
         {
-            var entities = await _repository.GetByAddressAsync(address);
+            var entities = await _repository.GetByStepIdAsync(stepId);
 
-            _logger.LogInformation("Successfully retrieved flow entities by address. Address: {Address}, Count: {Count}, User: {User}, RequestId: {RequestId}",
-                address, entities.Count(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully retrieved flow entities by step ID. StepId: {StepId}, Count: {Count}, User: {User}, RequestId: {RequestId}",
+                stepId, entities.Count(), userContext, HttpContext.TraceIdentifier);
 
             return Ok(entities);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error retrieving flow entities by address. Address: {Address}, User: {User}, RequestId: {RequestId}",
-                address, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error retrieving flow entities by step ID. StepId: {StepId}, User: {User}, RequestId: {RequestId}",
+                stepId, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while retrieving flow entities");
         }
     }
@@ -243,8 +214,8 @@ public class FlowsController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Create flow request. Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Create flow request. Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -258,33 +229,33 @@ public class FlowsController : ControllerBase
             entity!.CreatedBy = userContext;
             entity.Id = Guid.Empty;
 
-            _logger.LogDebug("Creating flow entity with details. Address: {Address}, Version: {Version}, Name: {Name}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
-                entity.Address, entity.Version, entity.Name, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Creating flow entity with details. Version: {Version}, Name: {Name}, CreatedBy: {CreatedBy}, User: {User}, RequestId: {RequestId}",
+                entity.Version, entity.Name, entity.CreatedBy, userContext, HttpContext.TraceIdentifier);
 
             var created = await _repository.CreateAsync(entity);
 
             if (created.Id == Guid.Empty)
             {
-                _logger.LogError("MongoDB failed to generate ID for new FlowEntity. Address: {Address}, Version: {Version}, User: {User}, RequestId: {RequestId}",
-                    entity.Address, entity.Version, userContext, HttpContext.TraceIdentifier);
+                _logger.LogError("MongoDB failed to generate ID for new FlowEntity. Version: {Version}, User: {User}, RequestId: {RequestId}",
+                    entity.Version, userContext, HttpContext.TraceIdentifier);
                 return StatusCode(500, "Failed to generate entity ID");
             }
 
-            _logger.LogInformation("Successfully created flow entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                created.Id, created.Address, created.Version, created.Name, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully created flow entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                created.Id, created.Version, created.Name, created.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict creating flow entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict creating flow entity. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error creating flow entity. Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error creating flow entity. Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while creating the flow");
         }
     }
@@ -295,8 +266,8 @@ public class FlowsController : ControllerBase
         var userContext = User.Identity?.Name ?? "Anonymous";
         var compositeKey = entity?.GetCompositeKey() ?? "Unknown";
 
-        _logger.LogInformation("Starting Update flow request. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-            id, entity?.Address, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
+        _logger.LogInformation("Starting Update flow request. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+            id, entity?.Version, entity?.Name, compositeKey, userContext, HttpContext.TraceIdentifier);
 
         if (!ModelState.IsValid)
         {
@@ -322,8 +293,8 @@ public class FlowsController : ControllerBase
                 return NotFound($"Flow with ID {id} not found");
             }
 
-            _logger.LogDebug("Updating flow entity. Id: {Id}, OldAddress: {OldAddress}, NewAddress: {NewAddress}, OldVersion: {OldVersion}, NewVersion: {NewVersion}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, entity.Address, existing.Version, entity.Version, userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Updating flow entity. Id: {Id}, OldVersion: {OldVersion}, NewVersion: {NewVersion}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, entity.Version, userContext, HttpContext.TraceIdentifier);
 
             // Preserve audit fields
             entity.CreatedAt = existing.CreatedAt;
@@ -332,15 +303,15 @@ public class FlowsController : ControllerBase
 
             var updated = await _repository.UpdateAsync(entity);
 
-            _logger.LogInformation("Successfully updated flow entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                updated.Id, updated.Address, updated.Version, updated.Name, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully updated flow entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                updated.Id, updated.Version, updated.Name, updated.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return Ok(updated);
         }
         catch (DuplicateKeyException ex)
         {
-            _logger.LogWarning(ex, "Duplicate key conflict updating flow entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogWarning(ex, "Duplicate key conflict updating flow entity. Id: {Id}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return Conflict(new { message = ex.Message });
         }
         catch (EntityNotFoundException)
@@ -351,8 +322,8 @@ public class FlowsController : ControllerBase
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error updating flow entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, entity?.Address, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
+            _logger.LogError(ex, "Error updating flow entity. Id: {Id}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, entity?.Version, compositeKey, userContext, HttpContext.TraceIdentifier);
             return StatusCode(500, "An error occurred while updating the flow");
         }
     }
@@ -375,8 +346,8 @@ public class FlowsController : ControllerBase
                 return NotFound($"Flow with ID {id} not found");
             }
 
-            _logger.LogDebug("Deleting flow entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogDebug("Deleting flow entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             var deleted = await _repository.DeleteAsync(id);
             if (!deleted)
@@ -386,8 +357,8 @@ public class FlowsController : ControllerBase
                 return StatusCode(500, "Failed to delete the flow entity");
             }
 
-            _logger.LogInformation("Successfully deleted flow entity. Id: {Id}, Address: {Address}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
-                id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
+            _logger.LogInformation("Successfully deleted flow entity. Id: {Id}, Version: {Version}, Name: {Name}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
+                id, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
         }

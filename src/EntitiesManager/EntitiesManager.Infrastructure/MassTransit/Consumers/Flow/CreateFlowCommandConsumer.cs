@@ -26,18 +26,17 @@ public class CreateFlowCommandConsumer : IConsumer<CreateFlowCommand>
 
     public async Task Consume(ConsumeContext<CreateFlowCommand> context)
     {
-        _logger.LogInformation("Processing CreateFlowCommand for {Address}_{Version}",
-            context.Message.Address, context.Message.Version);
+        _logger.LogInformation("Processing CreateFlowCommand for {Version}_{Name}",
+            context.Message.Version, context.Message.Name);
 
         try
         {
             var entity = new FlowEntity
             {
-                Address = context.Message.Address,
                 Version = context.Message.Version,
                 Name = context.Message.Name,
                 Description = context.Message.Description,
-                Configuration = context.Message.Configuration ?? new Dictionary<string, object>(),
+                StepIds = context.Message.StepIds ?? new List<Guid>(),
                 CreatedBy = context.Message.RequestedBy
             };
 
@@ -46,19 +45,18 @@ public class CreateFlowCommandConsumer : IConsumer<CreateFlowCommand>
             await _publishEndpoint.Publish(new FlowCreatedEvent
             {
                 Id = created.Id,
-                Address = created.Address,
                 Version = created.Version,
                 Name = created.Name,
                 Description = created.Description,
-                Configuration = created.Configuration,
+                StepIds = created.StepIds,
                 CreatedAt = created.CreatedAt,
                 CreatedBy = created.CreatedBy
             });
 
             await context.RespondAsync(created);
 
-            _logger.LogInformation("Successfully processed CreateFlowCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogInformation("Successfully processed CreateFlowCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
         }
         catch (DuplicateKeyException ex)
         {
@@ -67,8 +65,8 @@ public class CreateFlowCommandConsumer : IConsumer<CreateFlowCommand>
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing CreateFlowCommand for {Address}_{Version}",
-                context.Message.Address, context.Message.Version);
+            _logger.LogError(ex, "Error processing CreateFlowCommand for {Version}_{Name}",
+                context.Message.Version, context.Message.Name);
             throw;
         }
     }

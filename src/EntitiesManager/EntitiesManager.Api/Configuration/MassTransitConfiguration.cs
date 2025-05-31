@@ -5,7 +5,6 @@ using EntitiesManager.Infrastructure.MassTransit.Consumers.Protocol;
 using EntitiesManager.Infrastructure.MassTransit.Consumers.Importer;
 using EntitiesManager.Infrastructure.MassTransit.Consumers.Exporter;
 using EntitiesManager.Infrastructure.MassTransit.Consumers.Processor;
-using EntitiesManager.Infrastructure.MassTransit.Consumers.ProcessingChain;
 using EntitiesManager.Infrastructure.MassTransit.Consumers.Flow;
 using EntitiesManager.Infrastructure.MassTransit.Consumers.TaskScheduled;
 using EntitiesManager.Infrastructure.MassTransit.Consumers.ScheduledFlow;
@@ -60,12 +59,6 @@ public static class MassTransitConfiguration
             x.AddConsumer<UpdateProcessorCommandConsumer>();
             x.AddConsumer<DeleteProcessorCommandConsumer>();
             x.AddConsumer<GetProcessorQueryConsumer>();
-
-            // Add processing chain consumers
-            x.AddConsumer<CreateProcessingChainCommandConsumer>();
-            x.AddConsumer<UpdateProcessingChainCommandConsumer>();
-            x.AddConsumer<DeleteProcessingChainCommandConsumer>();
-            x.AddConsumer<GetProcessingChainQueryConsumer>();
 
             // Add flow consumers
             x.AddConsumer<CreateFlowCommandConsumer>();

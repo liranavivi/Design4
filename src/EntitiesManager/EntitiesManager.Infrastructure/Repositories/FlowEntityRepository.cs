@@ -17,40 +17,27 @@ public class FlowEntityRepository : BaseRepository<FlowEntity>, IFlowEntityRepos
 
     protected override FilterDefinition<FlowEntity> CreateCompositeKeyFilter(string compositeKey)
     {
-        var parts = compositeKey.Split('_', 2);
-        if (parts.Length != 2)
-            throw new ArgumentException("Invalid composite key format for FlowEntity. Expected format: 'address_version'");
-
-        return Builders<FlowEntity>.Filter.And(
-            Builders<FlowEntity>.Filter.Eq(x => x.Address, parts[0]),
-            Builders<FlowEntity>.Filter.Eq(x => x.Version, parts[1])
-        );
+        // FlowEntity no longer uses composite keys - return empty filter
+        return Builders<FlowEntity>.Filter.Empty;
     }
 
     protected override void CreateIndexes()
     {
-        // Composite key index for uniqueness
-        var compositeKeyIndex = Builders<FlowEntity>.IndexKeys
-            .Ascending(x => x.Address)
-            .Ascending(x => x.Version);
-
-        var indexOptions = new CreateIndexOptions { Unique = true };
-        _collection.Indexes.CreateOne(new CreateIndexModel<FlowEntity>(compositeKeyIndex, indexOptions));
-
-        // Additional indexes for common queries
+        // FlowEntity no longer uses composite keys - create indexes for new properties
+        // Name index for common queries
         _collection.Indexes.CreateOne(new CreateIndexModel<FlowEntity>(
             Builders<FlowEntity>.IndexKeys.Ascending(x => x.Name)));
-        _collection.Indexes.CreateOne(new CreateIndexModel<FlowEntity>(
-            Builders<FlowEntity>.IndexKeys.Ascending(x => x.Address)));
+
+        // Version index for version-based queries
         _collection.Indexes.CreateOne(new CreateIndexModel<FlowEntity>(
             Builders<FlowEntity>.IndexKeys.Ascending(x => x.Version)));
+
+        // StepIds index for workflow step references
+        _collection.Indexes.CreateOne(new CreateIndexModel<FlowEntity>(
+            Builders<FlowEntity>.IndexKeys.Ascending(x => x.StepIds)));
     }
 
-    public async Task<IEnumerable<FlowEntity>> GetByAddressAsync(string address)
-    {
-        var filter = Builders<FlowEntity>.Filter.Eq(x => x.Address, address);
-        return await _collection.Find(filter).ToListAsync();
-    }
+    // GetByAddressAsync method removed since FlowEntity no longer has Address property
 
     public async Task<IEnumerable<FlowEntity>> GetByVersionAsync(string version)
     {
@@ -64,16 +51,21 @@ public class FlowEntityRepository : BaseRepository<FlowEntity>, IFlowEntityRepos
         return await _collection.Find(filter).ToListAsync();
     }
 
+    public async Task<IEnumerable<FlowEntity>> GetByStepIdAsync(Guid stepId)
+    {
+        var filter = Builders<FlowEntity>.Filter.AnyEq(x => x.StepIds, stepId);
+        return await _collection.Find(filter).ToListAsync();
+    }
+
     protected override async Task PublishCreatedEventAsync(FlowEntity entity)
     {
         var createdEvent = new FlowCreatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            StepIds = entity.StepIds,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy
         };
@@ -85,11 +77,10 @@ public class FlowEntityRepository : BaseRepository<FlowEntity>, IFlowEntityRepos
         var updatedEvent = new FlowUpdatedEvent
         {
             Id = entity.Id,
-            Address = entity.Address,
             Version = entity.Version,
             Name = entity.Name,
             Description = entity.Description,
-            Configuration = entity.Configuration,
+            StepIds = entity.StepIds,
             UpdatedAt = entity.UpdatedAt,
             UpdatedBy = entity.UpdatedBy
         };

@@ -41,7 +41,6 @@ public static class MongoDbConfiguration
         services.AddScoped<IImporterEntityRepository, ImporterEntityRepository>();
         services.AddScoped<IExporterEntityRepository, ExporterEntityRepository>();
         services.AddScoped<IProcessorEntityRepository, ProcessorEntityRepository>();
-        services.AddScoped<IProcessingChainEntityRepository, ProcessingChainEntityRepository>();
         services.AddScoped<IFlowEntityRepository, FlowEntityRepository>();
         services.AddScoped<ITaskScheduledEntityRepository, TaskScheduledEntityRepository>();
         services.AddScoped<IScheduledFlowEntityRepository, ScheduledFlowEntityRepository>();
