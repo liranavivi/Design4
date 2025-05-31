@@ -52,9 +52,15 @@ public static class MongoDbConfiguration
         services.AddScoped<IExporterEntityRepository, ExporterEntityRepository>();
         services.AddScoped<IProcessorEntityRepository, ProcessorEntityRepository>();
         services.AddScoped<IFlowEntityRepository, FlowEntityRepository>();
-        services.AddScoped<ITaskScheduledEntityRepository, TaskScheduledEntityRepository>();
-        services.AddScoped<IScheduledFlowEntityRepository, ScheduledFlowEntityRepository>();
-
+        services.AddScoped<IOrchestratedFlowEntityRepository>(provider =>
+        {
+            var database = provider.GetRequiredService<IMongoDatabase>();
+            var logger = provider.GetRequiredService<ILogger<OrchestratedFlowEntityRepository>>();
+            var eventPublisher = provider.GetRequiredService<IEventPublisher>();
+            var integrityService = provider.GetRequiredService<IReferentialIntegrityService>();
+            return new OrchestratedFlowEntityRepository(database, logger, eventPublisher, integrityService);
+        });
+        services.AddScoped<IAssignmentEntityRepository, AssignmentEntityRepository>();
         return services;
     }
 }

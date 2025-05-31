@@ -1,4 +1,5 @@
 ﻿using EntitiesManager.Core.Entities;
+using EntitiesManager.Core.Exceptions;
 using EntitiesManager.Core.Interfaces.Repositories;
 using EntitiesManager.Core.Interfaces.Services;
 using EntitiesManager.Infrastructure.MassTransit.Events;
@@ -10,9 +11,16 @@ namespace EntitiesManager.Infrastructure.Repositories;
 
 public class ProcessorEntityRepository : BaseRepository<ProcessorEntity>, IProcessorEntityRepository
 {
-    public ProcessorEntityRepository(IMongoDatabase database, ILogger<ProcessorEntityRepository> logger, IEventPublisher eventPublisher)
+    private readonly IReferentialIntegrityService _referentialIntegrityService;
+
+    public ProcessorEntityRepository(
+        IMongoDatabase database,
+        ILogger<ProcessorEntityRepository> logger,
+        IEventPublisher eventPublisher,
+        IReferentialIntegrityService referentialIntegrityService)
         : base(database, "processors", logger, eventPublisher)
     {
+        _referentialIntegrityService = referentialIntegrityService;
     }
 
     protected override FilterDefinition<ProcessorEntity> CreateCompositeKeyFilter(string compositeKey)
@@ -47,6 +55,62 @@ public class ProcessorEntityRepository : BaseRepository<ProcessorEntity>, IProce
     {
         var filter = Builders<ProcessorEntity>.Filter.Eq(x => x.Name, name);
         return await _collection.Find(filter).ToListAsync();
+    }
+
+    public override async Task<bool> DeleteAsync(Guid id)
+    {
+        _logger.LogInformation("Validating referential integrity before deleting ProcessorEntity {Id}", id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateProcessorEntityDeletionAsync(id);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented deletion of ProcessorEntity {Id}: {Error}. References: {StepCount} steps",
+                    id, validationResult.ErrorMessage, validationResult.ProcessorEntityReferences?.StepEntityCount ?? 0);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.ProcessorEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for ProcessorEntity {Id}. Proceeding with deletion", id);
+            return await base.DeleteAsync(id);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during ProcessorEntity deletion validation for {Id}", id);
+            throw;
+        }
+    }
+
+    public override async Task<ProcessorEntity> UpdateAsync(ProcessorEntity entity)
+    {
+        _logger.LogInformation("Validating referential integrity before updating ProcessorEntity {Id}", entity.Id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateProcessorEntityUpdateAsync(entity.Id);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented update of ProcessorEntity {Id}: {Error}. References: {StepCount} steps",
+                    entity.Id, validationResult.ErrorMessage, validationResult.ProcessorEntityReferences?.StepEntityCount ?? 0);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.ProcessorEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for ProcessorEntity {Id}. Proceeding with update", entity.Id);
+            return await base.UpdateAsync(entity);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during ProcessorEntity update validation for {Id}", entity.Id);
+            throw;
+        }
     }
 
     protected override async Task PublishCreatedEventAsync(ProcessorEntity entity)

@@ -337,6 +337,22 @@ public class DestinationsController : ControllerBase
 
             return Ok(updated);
         }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented update of destination entity. Id: {Id}, Error: {Error}, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new
+            {
+                error = ex.Message,
+                details = ex.GetDetailedMessage(),
+                referencingEntities = new
+                {
+                    totalReferences = ex.DestinationEntityReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.DestinationEntityReferences?.GetReferencingEntityTypes() ?? new List<string>()
+                }
+            });
+        }
         catch (DuplicateKeyException ex)
         {
             _logger.LogWarning(ex, "Duplicate key conflict updating destination entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
@@ -390,6 +406,22 @@ public class DestinationsController : ControllerBase
                 id, existing.Address, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
+        }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented deletion of destination entity. Id: {Id}, Error: {Error}, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new
+            {
+                error = ex.Message,
+                details = ex.GetDetailedMessage(),
+                referencingEntities = new
+                {
+                    totalReferences = ex.DestinationEntityReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.DestinationEntityReferences?.GetReferencingEntityTypes() ?? new List<string>()
+                }
+            });
         }
         catch (Exception ex)
         {

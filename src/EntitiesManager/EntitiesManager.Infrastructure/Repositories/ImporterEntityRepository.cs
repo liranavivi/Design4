@@ -1,4 +1,5 @@
 ﻿using EntitiesManager.Core.Entities;
+using EntitiesManager.Core.Exceptions;
 using EntitiesManager.Core.Interfaces.Repositories;
 using EntitiesManager.Core.Interfaces.Services;
 using EntitiesManager.Infrastructure.MassTransit.Events;
@@ -10,9 +11,16 @@ namespace EntitiesManager.Infrastructure.Repositories;
 
 public class ImporterEntityRepository : BaseRepository<ImporterEntity>, IImporterEntityRepository
 {
-    public ImporterEntityRepository(IMongoDatabase database, ILogger<ImporterEntityRepository> logger, IEventPublisher eventPublisher)
+    private readonly IReferentialIntegrityService _referentialIntegrityService;
+
+    public ImporterEntityRepository(
+        IMongoDatabase database,
+        ILogger<ImporterEntityRepository> logger,
+        IEventPublisher eventPublisher,
+        IReferentialIntegrityService referentialIntegrityService)
         : base(database, "importers", logger, eventPublisher)
     {
+        _referentialIntegrityService = referentialIntegrityService;
     }
 
     protected override FilterDefinition<ImporterEntity> CreateCompositeKeyFilter(string compositeKey)
@@ -47,6 +55,62 @@ public class ImporterEntityRepository : BaseRepository<ImporterEntity>, IImporte
     {
         var filter = Builders<ImporterEntity>.Filter.Eq(x => x.Name, name);
         return await _collection.Find(filter).ToListAsync();
+    }
+
+    public override async Task<bool> DeleteAsync(Guid id)
+    {
+        _logger.LogInformation("Validating referential integrity before deleting ImporterEntity {Id}", id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateImporterEntityDeletionAsync(id);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented deletion of ImporterEntity {Id}: {Error}. References: {StepCount} steps",
+                    id, validationResult.ErrorMessage, validationResult.ImporterEntityReferences?.StepEntityCount ?? 0);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.ImporterEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for ImporterEntity {Id}. Proceeding with deletion", id);
+            return await base.DeleteAsync(id);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during ImporterEntity deletion validation for {Id}", id);
+            throw;
+        }
+    }
+
+    public override async Task<ImporterEntity> UpdateAsync(ImporterEntity entity)
+    {
+        _logger.LogInformation("Validating referential integrity before updating ImporterEntity {Id}", entity.Id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateImporterEntityUpdateAsync(entity.Id);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented update of ImporterEntity {Id}: {Error}. References: {StepCount} steps",
+                    entity.Id, validationResult.ErrorMessage, validationResult.ImporterEntityReferences?.StepEntityCount ?? 0);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.ImporterEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for ImporterEntity {Id}. Proceeding with update", entity.Id);
+            return await base.UpdateAsync(entity);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during ImporterEntity update validation for {Id}", entity.Id);
+            throw;
+        }
     }
 
     protected override async Task PublishCreatedEventAsync(ImporterEntity entity)

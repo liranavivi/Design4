@@ -308,6 +308,23 @@ public class FlowsController : ControllerBase
 
             return Ok(updated);
         }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented update of flow entity. Id: {Id}, Error: {Error}, References: {OrchestratedFlowCount} orchestrated flows, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, ex.FlowEntityReferences?.OrchestratedFlowEntityCount ?? 0, userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new
+            {
+                error = ex.Message,
+                details = ex.GetDetailedMessage(),
+                referencingEntities = new
+                {
+                    orchestratedFlowEntityCount = ex.FlowEntityReferences?.OrchestratedFlowEntityCount ?? 0,
+                    totalReferences = ex.FlowEntityReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.FlowEntityReferences?.GetReferencingEntityTypes() ?? new List<string>()
+                }
+            });
+        }
         catch (DuplicateKeyException ex)
         {
             _logger.LogWarning(ex, "Duplicate key conflict updating flow entity. Id: {Id}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
@@ -361,6 +378,23 @@ public class FlowsController : ControllerBase
                 id, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
+        }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented deletion of flow entity. Id: {Id}, Error: {Error}, References: {OrchestratedFlowCount} orchestrated flows, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, ex.FlowEntityReferences?.OrchestratedFlowEntityCount ?? 0, userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new
+            {
+                error = ex.Message,
+                details = ex.GetDetailedMessage(),
+                referencingEntities = new
+                {
+                    orchestratedFlowEntityCount = ex.FlowEntityReferences?.OrchestratedFlowEntityCount ?? 0,
+                    totalReferences = ex.FlowEntityReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.FlowEntityReferences?.GetReferencingEntityTypes() ?? new List<string>()
+                }
+            });
         }
         catch (Exception ex)
         {

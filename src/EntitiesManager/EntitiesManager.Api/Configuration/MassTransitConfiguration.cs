@@ -6,8 +6,8 @@ using EntitiesManager.Infrastructure.MassTransit.Consumers.Importer;
 using EntitiesManager.Infrastructure.MassTransit.Consumers.Exporter;
 using EntitiesManager.Infrastructure.MassTransit.Consumers.Processor;
 using EntitiesManager.Infrastructure.MassTransit.Consumers.Flow;
-using EntitiesManager.Infrastructure.MassTransit.Consumers.TaskScheduled;
-using EntitiesManager.Infrastructure.MassTransit.Consumers.ScheduledFlow;
+using EntitiesManager.Infrastructure.MassTransit.Consumers.OrchestratedFlow;
+using EntitiesManager.Infrastructure.MassTransit.Consumers.Assignment;
 using MassTransit;
 
 namespace EntitiesManager.Api.Configuration;
@@ -66,17 +66,17 @@ public static class MassTransitConfiguration
             x.AddConsumer<DeleteFlowCommandConsumer>();
             x.AddConsumer<GetFlowQueryConsumer>();
 
-            // Add task scheduled consumers
-            x.AddConsumer<CreateTaskScheduledCommandConsumer>();
-            x.AddConsumer<UpdateTaskScheduledCommandConsumer>();
-            x.AddConsumer<DeleteTaskScheduledCommandConsumer>();
-            x.AddConsumer<GetTaskScheduledQueryConsumer>();
+            // Add orchestrated flow consumers
+            x.AddConsumer<CreateOrchestratedFlowCommandConsumer>();
+            x.AddConsumer<UpdateOrchestratedFlowCommandConsumer>();
+            x.AddConsumer<DeleteOrchestratedFlowCommandConsumer>();
+            x.AddConsumer<GetOrchestratedFlowQueryConsumer>();
 
-            // Add scheduled flow consumers
-            x.AddConsumer<CreateScheduledFlowCommandConsumer>();
-            x.AddConsumer<UpdateScheduledFlowCommandConsumer>();
-            x.AddConsumer<DeleteScheduledFlowCommandConsumer>();
-            x.AddConsumer<GetScheduledFlowQueryConsumer>();
+            // Add assignment consumers
+            x.AddConsumer<CreateAssignmentCommandConsumer>();
+            x.AddConsumer<UpdateAssignmentCommandConsumer>();
+            x.AddConsumer<DeleteAssignmentCommandConsumer>();
+            x.AddConsumer<GetAssignmentQueryConsumer>();
 
             x.UsingRabbitMq((context, cfg) =>
             {

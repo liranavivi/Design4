@@ -314,6 +314,23 @@ public class ExportersController : ControllerBase
 
             return Ok(updated);
         }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented update of exporter entity. Id: {Id}, Error: {Error}, References: {StepCount} steps, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, ex.ExporterEntityReferences?.StepEntityCount ?? 0, userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new
+            {
+                error = ex.Message,
+                details = ex.GetDetailedMessage(),
+                referencingEntities = new
+                {
+                    stepEntityCount = ex.ExporterEntityReferences?.StepEntityCount ?? 0,
+                    totalReferences = ex.ExporterEntityReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.ExporterEntityReferences?.GetReferencingEntityTypes() ?? new List<string>()
+                }
+            });
+        }
         catch (DuplicateKeyException ex)
         {
             _logger.LogWarning(ex, "Duplicate key conflict updating exporter entity. Id: {Id}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
@@ -367,6 +384,23 @@ public class ExportersController : ControllerBase
                 id, existing.Version, existing.Name, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
+        }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented deletion of exporter entity. Id: {Id}, Error: {Error}, References: {StepCount} steps, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, ex.ExporterEntityReferences?.StepEntityCount ?? 0, userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new
+            {
+                error = ex.Message,
+                details = ex.GetDetailedMessage(),
+                referencingEntities = new
+                {
+                    stepEntityCount = ex.ExporterEntityReferences?.StepEntityCount ?? 0,
+                    totalReferences = ex.ExporterEntityReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.ExporterEntityReferences?.GetReferencingEntityTypes() ?? new List<string>()
+                }
+            });
         }
         catch (Exception ex)
         {

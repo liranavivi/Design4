@@ -283,6 +283,23 @@ public class StepsController : ControllerBase
 
             return Ok(updated);
         }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented update of step entity. Id: {Id}, Error: {Error}, References: {FlowCount} flows, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, ex.StepEntityReferences?.FlowEntityCount ?? 0, userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new
+            {
+                error = ex.Message,
+                details = ex.GetDetailedMessage(),
+                referencingEntities = new
+                {
+                    flowEntityCount = ex.StepEntityReferences?.FlowEntityCount ?? 0,
+                    totalReferences = ex.StepEntityReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.StepEntityReferences?.GetReferencingEntityTypes() ?? new List<string>()
+                }
+            });
+        }
         catch (DuplicateKeyException ex)
         {
             _logger.LogWarning(ex, "Duplicate key conflict updating step entity. Id: {Id}, EntityId: {EntityId}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
@@ -336,6 +353,23 @@ public class StepsController : ControllerBase
                 id, existing.EntityId, existing.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
+        }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation prevented deletion of step entity. Id: {Id}, Error: {Error}, References: {FlowCount} flows, User: {User}, RequestId: {RequestId}",
+                id, ex.Message, ex.StepEntityReferences?.FlowEntityCount ?? 0, userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new
+            {
+                error = ex.Message,
+                details = ex.GetDetailedMessage(),
+                referencingEntities = new
+                {
+                    flowEntityCount = ex.StepEntityReferences?.FlowEntityCount ?? 0,
+                    totalReferences = ex.StepEntityReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.StepEntityReferences?.GetReferencingEntityTypes() ?? new List<string>()
+                }
+            });
         }
         catch (Exception ex)
         {

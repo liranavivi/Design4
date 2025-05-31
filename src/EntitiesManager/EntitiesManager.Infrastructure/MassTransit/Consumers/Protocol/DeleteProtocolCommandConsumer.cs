@@ -51,7 +51,7 @@ public class DeleteProtocolCommandConsumer : IConsumer<DeleteProtocolCommand>
                 if (!validationResult.IsValid)
                 {
                     _logger.LogWarning("Referential integrity violation in DeleteProtocolCommand for ID {Id}: {Error}. References: {SourceCount} sources, {DestinationCount} destinations",
-                        context.Message.Id, validationResult.ErrorMessage, validationResult.References.SourceEntityCount, validationResult.References.DestinationEntityCount);
+                        context.Message.Id, validationResult.ErrorMessage, validationResult.ProtocolReferences?.SourceEntityCount ?? 0, validationResult.ProtocolReferences?.DestinationEntityCount ?? 0);
 
                     await context.RespondAsync(new
                     {
@@ -60,9 +60,9 @@ public class DeleteProtocolCommandConsumer : IConsumer<DeleteProtocolCommand>
                         ErrorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
                         References = new
                         {
-                            SourceEntityCount = validationResult.References.SourceEntityCount,
-                            DestinationEntityCount = validationResult.References.DestinationEntityCount,
-                            TotalReferences = validationResult.References.TotalReferences
+                            SourceEntityCount = validationResult.ProtocolReferences?.SourceEntityCount ?? 0,
+                            DestinationEntityCount = validationResult.ProtocolReferences?.DestinationEntityCount ?? 0,
+                            TotalReferences = validationResult.ProtocolReferences?.TotalReferences ?? 0
                         }
                     });
                     return;
@@ -100,9 +100,9 @@ public class DeleteProtocolCommandConsumer : IConsumer<DeleteProtocolCommand>
                 ErrorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
                 References = new
                 {
-                    SourceEntityCount = ex.References.SourceEntityCount,
-                    DestinationEntityCount = ex.References.DestinationEntityCount,
-                    TotalReferences = ex.References.TotalReferences
+                    SourceEntityCount = ex.ProtocolReferences?.SourceEntityCount ?? 0,
+                    DestinationEntityCount = ex.ProtocolReferences?.DestinationEntityCount ?? 0,
+                    TotalReferences = ex.ProtocolReferences?.TotalReferences ?? 0
                 }
             });
         }

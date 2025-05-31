@@ -306,7 +306,7 @@ public class ProtocolsController : ControllerBase
         catch (ReferentialIntegrityException ex)
         {
             _logger.LogWarning("Referential integrity violation prevented update of protocol entity. Id: {Id}, Error: {Error}, References: {SourceCount} sources, {DestinationCount} destinations, User: {User}, RequestId: {RequestId}",
-                id, ex.Message, ex.References.SourceEntityCount, ex.References.DestinationEntityCount, userContext, HttpContext.TraceIdentifier);
+                id, ex.Message, ex.ProtocolReferences?.SourceEntityCount ?? 0, ex.ProtocolReferences?.DestinationEntityCount ?? 0, userContext, HttpContext.TraceIdentifier);
 
             var detailedMessage = ex.GetDetailedMessage();
             return Conflict(new
@@ -315,10 +315,10 @@ public class ProtocolsController : ControllerBase
                 errorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
                 referencingEntities = new
                 {
-                    sourceEntityCount = ex.References.SourceEntityCount,
-                    destinationEntityCount = ex.References.DestinationEntityCount,
-                    totalReferences = ex.References.TotalReferences,
-                    entityTypes = ex.References.GetReferencingEntityTypes()
+                    sourceEntityCount = ex.ProtocolReferences?.SourceEntityCount ?? 0,
+                    destinationEntityCount = ex.ProtocolReferences?.DestinationEntityCount ?? 0,
+                    totalReferences = ex.ProtocolReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.ProtocolReferences?.GetReferencingEntityTypes() ?? new List<string>()
                 }
             });
         }
@@ -367,7 +367,7 @@ public class ProtocolsController : ControllerBase
         catch (ReferentialIntegrityException ex)
         {
             _logger.LogWarning("Referential integrity violation prevented deletion of protocol entity. Id: {Id}, Error: {Error}, References: {SourceCount} sources, {DestinationCount} destinations, User: {User}, RequestId: {RequestId}",
-                id, ex.Message, ex.References.SourceEntityCount, ex.References.DestinationEntityCount, userContext, HttpContext.TraceIdentifier);
+                id, ex.Message, ex.ProtocolReferences?.SourceEntityCount ?? 0, ex.ProtocolReferences?.DestinationEntityCount ?? 0, userContext, HttpContext.TraceIdentifier);
 
             var detailedMessage = ex.GetDetailedMessage();
             return Conflict(new
@@ -376,10 +376,10 @@ public class ProtocolsController : ControllerBase
                 errorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
                 referencingEntities = new
                 {
-                    sourceEntityCount = ex.References.SourceEntityCount,
-                    destinationEntityCount = ex.References.DestinationEntityCount,
-                    totalReferences = ex.References.TotalReferences,
-                    entityTypes = ex.References.GetReferencingEntityTypes()
+                    sourceEntityCount = ex.ProtocolReferences?.SourceEntityCount ?? 0,
+                    destinationEntityCount = ex.ProtocolReferences?.DestinationEntityCount ?? 0,
+                    totalReferences = ex.ProtocolReferences?.TotalReferences ?? 0,
+                    entityTypes = ex.ProtocolReferences?.GetReferencingEntityTypes() ?? new List<string>()
                 }
             });
         }

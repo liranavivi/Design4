@@ -1,6 +1,7 @@
 using EntitiesManager.Core.Entities;
 using EntitiesManager.Core.Interfaces.Repositories;
 using EntitiesManager.Core.Interfaces.Services;
+using EntitiesManager.Core.Exceptions;
 using EntitiesManager.Infrastructure.MassTransit.Events;
 using EntitiesManager.Infrastructure.Repositories.Base;
 using Microsoft.Extensions.Logging;
@@ -10,9 +11,74 @@ namespace EntitiesManager.Infrastructure.Repositories;
 
 public class SourceEntityRepository : BaseRepository<SourceEntity>, ISourceEntityRepository
 {
-    public SourceEntityRepository(IMongoDatabase database, ILogger<SourceEntityRepository> logger, IEventPublisher eventPublisher)
+    private readonly IReferentialIntegrityService _referentialIntegrityService;
+
+    public SourceEntityRepository(
+        IMongoDatabase database,
+        ILogger<SourceEntityRepository> logger,
+        IEventPublisher eventPublisher,
+        IReferentialIntegrityService referentialIntegrityService)
         : base(database, "sources", logger, eventPublisher)
     {
+        _referentialIntegrityService = referentialIntegrityService;
+    }
+
+    public override async Task<bool> DeleteAsync(Guid id)
+    {
+        _logger.LogInformation("Validating referential integrity before deleting SourceEntity {Id}", id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateSourceEntityDeletionAsync(id);
+
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented deletion of SourceEntity {Id}: {Error}",
+                    id, validationResult.ErrorMessage);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.SourceEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for SourceEntity {Id}. Proceeding with deletion", id);
+            return await base.DeleteAsync(id);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during SourceEntity deletion validation for {Id}", id);
+            throw;
+        }
+    }
+
+    public override async Task<SourceEntity> UpdateAsync(SourceEntity entity)
+    {
+        _logger.LogInformation("Validating referential integrity before updating SourceEntity {Id}", entity.Id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateSourceEntityUpdateAsync(entity.Id);
+
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented update of SourceEntity {Id}: {Error}",
+                    entity.Id, validationResult.ErrorMessage);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.SourceEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for SourceEntity {Id}. Proceeding with update", entity.Id);
+            return await base.UpdateAsync(entity);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during SourceEntity update validation for {Id}", entity.Id);
+            throw;
+        }
     }
 
     protected override FilterDefinition<SourceEntity> CreateCompositeKeyFilter(string compositeKey)

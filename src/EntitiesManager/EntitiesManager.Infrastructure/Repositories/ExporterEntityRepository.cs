@@ -1,4 +1,5 @@
 ﻿using EntitiesManager.Core.Entities;
+using EntitiesManager.Core.Exceptions;
 using EntitiesManager.Core.Interfaces.Repositories;
 using EntitiesManager.Core.Interfaces.Services;
 using EntitiesManager.Infrastructure.MassTransit.Events;
@@ -10,9 +11,16 @@ namespace EntitiesManager.Infrastructure.Repositories;
 
 public class ExporterEntityRepository : BaseRepository<ExporterEntity>, IExporterEntityRepository
 {
-    public ExporterEntityRepository(IMongoDatabase database, ILogger<ExporterEntityRepository> logger, IEventPublisher eventPublisher)
+    private readonly IReferentialIntegrityService _referentialIntegrityService;
+
+    public ExporterEntityRepository(
+        IMongoDatabase database,
+        ILogger<ExporterEntityRepository> logger,
+        IEventPublisher eventPublisher,
+        IReferentialIntegrityService referentialIntegrityService)
         : base(database, "exporters", logger, eventPublisher)
     {
+        _referentialIntegrityService = referentialIntegrityService;
     }
 
     protected override FilterDefinition<ExporterEntity> CreateCompositeKeyFilter(string compositeKey)
@@ -47,6 +55,62 @@ public class ExporterEntityRepository : BaseRepository<ExporterEntity>, IExporte
     {
         var filter = Builders<ExporterEntity>.Filter.Eq(x => x.Name, name);
         return await _collection.Find(filter).ToListAsync();
+    }
+
+    public override async Task<bool> DeleteAsync(Guid id)
+    {
+        _logger.LogInformation("Validating referential integrity before deleting ExporterEntity {Id}", id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateExporterEntityDeletionAsync(id);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented deletion of ExporterEntity {Id}: {Error}. References: {StepCount} steps",
+                    id, validationResult.ErrorMessage, validationResult.ExporterEntityReferences?.StepEntityCount ?? 0);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.ExporterEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for ExporterEntity {Id}. Proceeding with deletion", id);
+            return await base.DeleteAsync(id);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during ExporterEntity deletion validation for {Id}", id);
+            throw;
+        }
+    }
+
+    public override async Task<ExporterEntity> UpdateAsync(ExporterEntity entity)
+    {
+        _logger.LogInformation("Validating referential integrity before updating ExporterEntity {Id}", entity.Id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateExporterEntityUpdateAsync(entity.Id);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented update of ExporterEntity {Id}: {Error}. References: {StepCount} steps",
+                    entity.Id, validationResult.ErrorMessage, validationResult.ExporterEntityReferences?.StepEntityCount ?? 0);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.ExporterEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for ExporterEntity {Id}. Proceeding with update", entity.Id);
+            return await base.UpdateAsync(entity);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during ExporterEntity update validation for {Id}", entity.Id);
+            throw;
+        }
     }
 
     protected override async Task PublishCreatedEventAsync(ExporterEntity entity)

@@ -1,4 +1,5 @@
 ﻿using EntitiesManager.Core.Entities;
+using EntitiesManager.Core.Exceptions;
 using EntitiesManager.Core.Interfaces.Repositories;
 using EntitiesManager.Core.Interfaces.Services;
 using EntitiesManager.Infrastructure.MassTransit.Events;
@@ -10,9 +11,16 @@ namespace EntitiesManager.Infrastructure.Repositories;
 
 public class FlowEntityRepository : BaseRepository<FlowEntity>, IFlowEntityRepository
 {
-    public FlowEntityRepository(IMongoDatabase database, ILogger<FlowEntityRepository> logger, IEventPublisher eventPublisher)
+    private readonly IReferentialIntegrityService _referentialIntegrityService;
+
+    public FlowEntityRepository(
+        IMongoDatabase database,
+        ILogger<FlowEntityRepository> logger,
+        IEventPublisher eventPublisher,
+        IReferentialIntegrityService referentialIntegrityService)
         : base(database, "flows", logger, eventPublisher)
     {
+        _referentialIntegrityService = referentialIntegrityService;
     }
 
     protected override FilterDefinition<FlowEntity> CreateCompositeKeyFilter(string compositeKey)
@@ -55,6 +63,62 @@ public class FlowEntityRepository : BaseRepository<FlowEntity>, IFlowEntityRepos
     {
         var filter = Builders<FlowEntity>.Filter.AnyEq(x => x.StepIds, stepId);
         return await _collection.Find(filter).ToListAsync();
+    }
+
+    public override async Task<bool> DeleteAsync(Guid id)
+    {
+        _logger.LogInformation("Validating referential integrity before deleting FlowEntity {Id}", id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateFlowEntityDeletionAsync(id);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented deletion of FlowEntity {Id}: {Error}. References: {OrchestratedFlowCount} orchestrated flows",
+                    id, validationResult.ErrorMessage, validationResult.FlowEntityReferences?.OrchestratedFlowEntityCount ?? 0);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.FlowEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for FlowEntity {Id}. Proceeding with deletion", id);
+            return await base.DeleteAsync(id);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during FlowEntity deletion validation for {Id}", id);
+            throw;
+        }
+    }
+
+    public override async Task<FlowEntity> UpdateAsync(FlowEntity entity)
+    {
+        _logger.LogInformation("Validating referential integrity before updating FlowEntity {Id}", entity.Id);
+
+        try
+        {
+            var validationResult = await _referentialIntegrityService.ValidateFlowEntityUpdateAsync(entity.Id);
+            if (!validationResult.IsValid)
+            {
+                _logger.LogWarning("Referential integrity violation prevented update of FlowEntity {Id}: {Error}. References: {OrchestratedFlowCount} orchestrated flows",
+                    entity.Id, validationResult.ErrorMessage, validationResult.FlowEntityReferences?.OrchestratedFlowEntityCount ?? 0);
+                throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.FlowEntityReferences!);
+            }
+
+            _logger.LogInformation("Referential integrity validation passed for FlowEntity {Id}. Proceeding with update", entity.Id);
+            return await base.UpdateAsync(entity);
+        }
+        catch (ReferentialIntegrityException)
+        {
+            throw; // Re-throw referential integrity exceptions
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during FlowEntity update validation for {Id}", entity.Id);
+            throw;
+        }
     }
 
     protected override async Task PublishCreatedEventAsync(FlowEntity entity)

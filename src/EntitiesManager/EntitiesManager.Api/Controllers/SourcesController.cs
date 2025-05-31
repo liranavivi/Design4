@@ -337,6 +337,20 @@ public class SourcesController : ControllerBase
 
             return Ok(updated);
         }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation during source update. Id: {Id}, Error: {Error}, User: {User}, RequestId: {RequestId}",
+                id, ex.GetDetailedMessage(), userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new {
+                error = ex.GetDetailedMessage(),
+                errorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
+                referencingEntities = ex.SourceEntityReferences != null ? new {
+                    totalReferences = ex.SourceEntityReferences.TotalReferences,
+                    entityTypes = ex.SourceEntityReferences.GetReferencingEntityTypes()
+                } : null
+            });
+        }
         catch (DuplicateKeyException ex)
         {
             _logger.LogWarning(ex, "Duplicate key conflict updating source entity. Id: {Id}, Address: {Address}, Version: {Version}, CompositeKey: {CompositeKey}, User: {User}, RequestId: {RequestId}",
@@ -388,6 +402,20 @@ public class SourcesController : ControllerBase
                 id, existingEntity?.Address, existingEntity?.Version, existingEntity?.Name, existingEntity?.GetCompositeKey(), userContext, HttpContext.TraceIdentifier);
 
             return NoContent();
+        }
+        catch (ReferentialIntegrityException ex)
+        {
+            _logger.LogWarning("Referential integrity violation during source deletion. Id: {Id}, Error: {Error}, User: {User}, RequestId: {RequestId}",
+                id, ex.GetDetailedMessage(), userContext, HttpContext.TraceIdentifier);
+
+            return Conflict(new {
+                error = ex.GetDetailedMessage(),
+                errorCode = "REFERENTIAL_INTEGRITY_VIOLATION",
+                referencingEntities = ex.SourceEntityReferences != null ? new {
+                    totalReferences = ex.SourceEntityReferences.TotalReferences,
+                    entityTypes = ex.SourceEntityReferences.GetReferencingEntityTypes()
+                } : null
+            });
         }
         catch (Exception ex)
         {

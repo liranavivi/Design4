@@ -201,18 +201,18 @@ public static class BsonConfiguration
             });
         }
 
-        if (!BsonClassMap.IsClassMapRegistered(typeof(TaskScheduledEntity)))
+        if (!BsonClassMap.IsClassMapRegistered(typeof(OrchestratedFlowEntity)))
         {
-            BsonClassMap.RegisterClassMap<TaskScheduledEntity>(cm =>
+            BsonClassMap.RegisterClassMap<OrchestratedFlowEntity>(cm =>
             {
                 cm.AutoMap();
                 cm.SetIgnoreExtraElements(true);
             });
         }
 
-        if (!BsonClassMap.IsClassMapRegistered(typeof(ScheduledFlowEntity)))
+        if (!BsonClassMap.IsClassMapRegistered(typeof(AssignmentEntity)))
         {
-            BsonClassMap.RegisterClassMap<ScheduledFlowEntity>(cm =>
+            BsonClassMap.RegisterClassMap<AssignmentEntity>(cm =>
             {
                 cm.AutoMap();
                 cm.SetIgnoreExtraElements(true);

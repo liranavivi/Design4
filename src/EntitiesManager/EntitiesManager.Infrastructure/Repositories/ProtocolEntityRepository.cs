@@ -107,8 +107,8 @@ public class ProtocolEntityRepository : BaseRepository<ProtocolEntity>, IProtoco
                 if (!validationResult.IsValid)
                 {
                     _logger.LogWarning("Referential integrity violation prevented deletion of ProtocolEntity {Id}: {Error}. References: {SourceCount} sources, {DestinationCount} destinations",
-                        id, validationResult.ErrorMessage, validationResult.References.SourceEntityCount, validationResult.References.DestinationEntityCount);
-                    throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.References);
+                        id, validationResult.ErrorMessage, validationResult.ProtocolReferences?.SourceEntityCount ?? 0, validationResult.ProtocolReferences?.DestinationEntityCount ?? 0);
+                    throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.ProtocolReferences!);
                 }
 
                 _logger.LogInformation("Referential integrity validation passed for ProtocolEntity {Id}. Proceeding with deletion", id);
@@ -144,7 +144,7 @@ public class ProtocolEntityRepository : BaseRepository<ProtocolEntity>, IProtoco
                 {
                     _logger.LogWarning("Referential integrity violation prevented update of ProtocolEntity {Id}: {Error}",
                         existing.Id, validationResult.ErrorMessage);
-                    throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.References);
+                    throw new ReferentialIntegrityException(validationResult.ErrorMessage, validationResult.ProtocolReferences!);
                 }
             }
         }
